@@ -30,6 +30,16 @@ struct {
 static struct proc *initproc;
 
 int nextpid = 1;
+
+// Variables for scheduling logs. See schedlog() and scheduler() below
+int schedlog_active = 0;
+int schedlog_lasttick = 0;
+
+void schedlog(int n) {
+  schedlog_active = 1;
+  schedlog_lasttick = ticks + n;
+}
+
 extern void forkret(void);
 extern void trapret(void);
 
@@ -376,6 +386,23 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
       p->ticks_left = RSDL_PROC_QUANTUM;
+      if (schedlog_active) {
+        if (ticks > schedlog_lasttick) {
+          schedlog_active = 0;
+        } else {
+          struct proc *pp;
+          struct level_node *nn;
+
+          cprintf("%d|active|0(0)", ticks);
+          for(nn = &ptable.node[0]; nn < &ptable.node[RSDL_LEVELS*NPROC]; nn++){
+            pp = &nn->proc;
+            if (pp->state == UNUSED) continue;
+            else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
+          }
+
+          cprintf("\n");
+        }
+      }
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
