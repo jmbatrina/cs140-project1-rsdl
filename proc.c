@@ -15,16 +15,28 @@
 #undef RSDL_STARTING_LEVEL
 #define RSDL_STARTING_LEVEL 0
 
-#define NULL 0
+#define NULL (void *) 0x0
+
+// TODO: check if we need to release ptable.lock before each (debug) panic
+// TODO: Add tests for en/unqueue (automated testcases????)
 
 struct level_node {
   struct proc proc;
+  // must only be modified by enqueue_node and unqueue_proc
   struct level_node *next;
+};
+
+struct level_queue{
+  struct spinlock lock;
+  // must only be modified by enqueue_node and unqueue_proc
+  int numproc;
+  struct level_node *head;
 };
 
 struct {
   struct spinlock lock;
   struct level_node node[RSDL_LEVELS*NPROC];
+  struct level_queue active[RSDL_LEVELS];
 } ptable;
 
 static struct proc *initproc;
@@ -49,12 +61,20 @@ void
 pinit(void)
 {
   struct level_node *n;
+  struct level_queue *lq;
   initlock(&ptable.lock, "ptable");
 
   // To be sure, explicitly initialize next pointers to NULL
   acquire(&ptable.lock);
   for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
     n->next = NULL;
+  }
+
+  // Explicitly initialize all queues to empty
+  for (lq = &ptable.active[0]; lq < &ptable.active[RSDL_LEVELS]; lq++){
+    initlock(&lq->lock, "level queue");
+    lq->numproc = 0;
+    lq->head = NULL;
   }
   release(&ptable.lock);
 }
@@ -98,6 +118,112 @@ myproc(void) {
   return p;
 }
 
+void
+enqueue_node(struct level_node *n, struct level_queue *q)
+{
+  if (n == NULL) {
+    panic("enqueue of NULL proc node");
+    return;
+  }
+
+  if (n->proc.state == UNUSED) {
+    panic("enqueue of UNUSED proc");
+    return;
+  }
+
+  acquire(&q->lock);
+  // for debug, see below
+  int is_full_numproc = (q->numproc >= NPROC);
+  int is_full = 0;
+
+  if (q->head == NULL){
+    q->head = n;
+  } else {
+    struct level_node *nn = q->head;
+    int i;
+
+    for (i = 0; nn->next != NULL && i < NPROC; nn = nn->next, ++i)
+      ;
+    if (i >= NPROC || nn->next != NULL) {
+      is_full = 1;  // no free slot in level found
+    } else {
+      nn->next = n;
+    }
+  }
+
+  if (is_full && is_full_numproc) {
+    panic("enqueue in full level");
+  } else if (is_full && !is_full_numproc) {
+    panic("enqueue in full level, detected late due to faulty accounting of numproc");
+  } else {  // enqueue successful
+    if (!is_full && is_full_numproc)
+      cprintf("enqueue full level FALSE POSITIVE due to faulty accounting of numproc");
+
+    n->next = NULL;
+    q->numproc++;   // increment number of procs in this level
+  }
+  release(&q->lock);
+}
+
+// NOTE: *un*queue intentional since proc in middle of queue can be removed
+struct level_node*
+unqueue_proc(struct proc *p, struct level_queue *q)
+{
+  if (p == NULL) {
+    panic("unqueue of NULL proc");
+    return NULL;
+  }
+
+  if (q->head == NULL) {
+    if (q->numproc != 0)
+      panic("unqueue on empty level, mismatch due to faulty accounting of numproc");
+    else
+      panic("unqueue on empty level");
+
+    return NULL;
+  }
+
+  if (q->numproc == 0) {
+    cprintf("unqueue empty FALSE POSITIVE due to faulty accounting of numproc");
+  }
+
+  struct level_node *n = q->head;
+  int found = 0;
+
+  acquire(&q->lock);
+  if (&q->head->proc == p) {
+    found = 1;
+    q->head = n->next->next;
+  } else {
+    struct level_node *nn = q->head;
+    int i;
+
+    for (i = 0; nn->next != NULL && i < NPROC; nn = nn->next, ++i) {
+      if (&nn->next->proc == p) {
+        // found proc, remove from current queue linked list
+        n = nn->next;
+        found = 1;
+        nn->next = nn->next->next;
+        break;
+      }
+    }
+  }
+
+  if (found) {
+    n->next = NULL;
+    q->numproc--;   // increment number of procs in this level
+  }
+  release(&q->lock);
+
+  if (!found) {
+    panic("unqueue of node not belonging to level");
+    return NULL;
+  }
+
+  // we only reach here if unqueue is successful
+  return n;
+}
+
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
 // If found, change state to EMBRYO and initialize
@@ -134,6 +260,11 @@ found:
     return 0;
   }
   sp = p->kstack + KSTACKSIZE;
+
+  // only enqueue here since we are sure that allocation is successful
+  // Phase 1: always enqueue in our single active level
+  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+  enqueue_node(n, q);
 
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
@@ -230,7 +361,13 @@ fork(void)
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
+
+    // fork failed, remove forked embryo process from level/queue
+    // Phase 1: ALL procs are in first level, so we always remove procs from there
+    struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+    unqueue_proc(np, q);
     np->state = UNUSED;
+
     return -1;
   }
   np->sz = curproc->sz;
@@ -336,7 +473,13 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+
+        // Process exited, remove from its queue
+        // Phase 1: ALL procs are in first level, so we always remove procs from there
+        struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+        unqueue_proc(p, q);
         release(&ptable.lock);
+
         return pid;
       }
     }
