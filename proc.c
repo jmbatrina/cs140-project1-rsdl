@@ -114,6 +114,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->ticks_left = RSDL_PROC_QUANTUM;
 
   release(&ptable.lock);
 
@@ -374,6 +375,7 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      p->ticks_left = RSDL_PROC_QUANTUM;
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
