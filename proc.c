@@ -7,9 +7,24 @@
 #include "proc.h"
 #include "spinlock.h"
 
+#include "rsdl.h" // For RSDL scheduler parameters
+
+// Phase 1: Force RSDL_LEVELS to 1 and RSDL_STARTING_LEVEL to 0
+#undef RSDL_LEVELS
+#define RSDL_LEVELS 1
+#undef RSDL_STARTING_LEVEL
+#define RSDL_STARTING_LEVEL 0
+
+#define NULL 0
+
+struct level_node {
+  struct proc proc;
+  struct level_node *next;
+};
+
 struct {
   struct spinlock lock;
-  struct proc proc[NPROC];
+  struct level_node node[RSDL_LEVELS*NPROC];
 } ptable;
 
 static struct proc *initproc;
@@ -23,7 +38,15 @@ static void wakeup1(void *chan);
 void
 pinit(void)
 {
+  struct level_node *n;
   initlock(&ptable.lock, "ptable");
+
+  // To be sure, explicitly initialize next pointers to NULL
+  acquire(&ptable.lock);
+  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+    n->next = NULL;
+  }
+  release(&ptable.lock);
 }
 
 // Must be called with interrupts disabled
@@ -74,13 +97,16 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
+  struct level_node *n;
   char *sp;
 
   acquire(&ptable.lock);
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+    p = &n->proc;
     if(p->state == UNUSED)
       goto found;
+  }
 
   release(&ptable.lock);
   return 0;
@@ -229,6 +255,7 @@ exit(void)
 {
   struct proc *curproc = myproc();
   struct proc *p;
+  struct level_node *n;
   int fd;
 
   if(curproc == initproc)
@@ -253,7 +280,8 @@ exit(void)
   wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+    p = &n->proc;
     if(p->parent == curproc){
       p->parent = initproc;
       if(p->state == ZOMBIE)
@@ -273,6 +301,7 @@ int
 wait(void)
 {
   struct proc *p;
+  struct level_node *n;
   int havekids, pid;
   struct proc *curproc = myproc();
   
@@ -280,7 +309,8 @@ wait(void)
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+      p = &n->proc;
       if(p->parent != curproc)
         continue;
       havekids = 1;
@@ -323,6 +353,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct level_node *n;
   struct cpu *c = mycpu();
   c->proc = 0;
   
@@ -332,7 +363,8 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+      p = &n->proc;
       if(p->state != RUNNABLE)
         continue;
 
@@ -458,10 +490,13 @@ static void
 wakeup1(void *chan)
 {
   struct proc *p;
+  struct level_node *n;
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+    p = &n->proc;
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
+  }
 }
 
 // Wake up all processes sleeping on chan.
@@ -480,9 +515,11 @@ int
 kill(int pid)
 {
   struct proc *p;
+  struct level_node *n;
 
   acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+    p = &n->proc;
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
@@ -513,10 +550,12 @@ procdump(void)
   };
   int i;
   struct proc *p;
+  struct level_node *n;
   char *state;
   uint pc[10];
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
+    p = &n->proc;
     if(p->state == UNUSED)
       continue;
     if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
