@@ -7,7 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
-// Phase 1: Force RSDL_LEVELS to 1 and RSDL_STARTING_LEVEL to 0
+// Phase 1-2: Force RSDL_LEVELS to 1 and RSDL_STARTING_LEVEL to 0
 #undef RSDL_LEVELS
 #define RSDL_LEVELS 1
 #undef RSDL_STARTING_LEVEL
@@ -31,9 +31,12 @@ struct level_queue{
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  // pointer to active set; For Phase 1, active = &level at all times
+  // pointers to start of active and expired sets
+  // either active = &level[0] and expired &level[1] or vice versa
+  // NOTE: Only active[0..RSDL_LEVELS-1] are correct access, ditto for expired
   struct level_queue *active;
-  struct level_queue level[RSDL_LEVELS];
+  struct level_queue *expired;
+  struct level_queue level[2][RSDL_LEVELS];
 } ptable;
 
 static struct proc *initproc;
@@ -62,19 +65,23 @@ pinit(void)
 
   // To be sure, explicitly initialize all queues to empty
   acquire(&ptable.lock);
-  for (int k = 0; k < RSDL_LEVELS; ++k){
-    lq = &ptable.level[k];
-    // NOTE: all queues will have same lock names
-    initlock(&lq->lock, "level queue");
-    acquire(&lq->lock);
-    lq->numproc = 0;
-    for (int i = 0; i < NPROC; ++i){
-      lq->proc[i] = NULL;
+  for (int s = 0; s < 2; ++s) {
+    for (int k = 0; k < RSDL_LEVELS; ++k){
+      lq = &ptable.level[s][k];
+      // NOTE: all queues will have same lock names
+      initlock(&lq->lock, "level queue");
+      acquire(&lq->lock);
+      lq->numproc = 0;
+      for (int i = 0; i < NPROC; ++i){
+        lq->proc[i] = NULL;
+      }
     }
     release(&lq->lock);
   }
 
-  ptable.active = &ptable.level[0];
+  // initialize pointers to active and expired sets
+  ptable.active = ptable.level[0];
+  ptable.expired = ptable.level[1];
   release(&ptable.lock);
 }
 
@@ -232,6 +239,99 @@ try_unqueue_proc(struct proc *p, struct level_queue *q)
   return unqueue_proc_full(p, q, 1);
 }
 
+int
+remove_proc_from_levels(struct proc *p)
+{
+  struct level_queue *q;
+  int found = 0;
+  // Naive implementation: use linear search on each level to find level
+  // TODO: More efficient implementation (keep current level as proc attribute, needs to be maintained when proc is re-enqueued)
+  for (int s = 0; s < 2; ++s) {
+    for (int k = 0; k < RSDL_LEVELS; ++k){
+      q = &ptable.level[s][k];
+      if (try_unqueue_proc(p, q) != -1) {
+        found = 1;
+        break;
+      }
+    }
+    if (found)
+      break;
+  }
+
+  if (!found) {
+    panic("Proc not found in any level");
+    return -1;
+  }
+
+  return 0;
+}
+
+int
+next_level(int start, int use_expired)
+{
+  // TODO: ptable.{active, expired} accessed but not modified. Do we need to acquire lock?
+  const struct level_queue *set = (use_expired) ? ptable.expired : ptable.active;
+
+  int k = start;
+  for ( ; k < RSDL_LEVELS; ++k) {
+    if (set[k].numproc < NPROC-1) {
+      break;
+    }
+  }
+
+  if (k < RSDL_LEVELS) {
+    return k;
+  } else {
+    return -1;
+  }
+}
+
+int
+next_active_level(int start)
+{
+  return next_level(start, 0);
+}
+
+int
+next_expired_level(int start)
+{
+  return next_level(start, 1);
+}
+
+struct level_queue*
+find_vacant_queue(int start)
+{
+  int level = next_active_level(start);
+  struct level_queue *set = ptable.active;
+  if (level == -1) {
+    level = next_expired_level(RSDL_STARTING_LEVEL);
+    set = ptable.expired;
+  }
+
+  if (level == -1) {
+    // TODO: Verify how to handle case when all levels are filled
+    panic("No free level in expired and active set, too many procs");
+    return NULL;
+  }
+
+  return &set[level];
+}
+
+int
+is_active_set(struct level_queue *q)
+{
+  // NOTE: assumes that &ptable.level <= q < &ptable.level[2][RSDL_LEVELS]
+  if (ptable.active < ptable.expired)
+    return q < ptable.expired;
+  else
+    return q >= ptable.active;
+}
+
+int is_expired_set(struct level_queue *q)
+{
+  return !is_active_set(q);
+}
+
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
 // If found, change state to EMBRYO and initialize
@@ -319,8 +419,7 @@ userinit(void)
 
   p->state = RUNNABLE;
   // only enqueue here since we are sure that allocation is successful
-  // Phase 1: always enqueue in our single active level
-  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL);
   enqueue_proc(p, q);
 
   release(&ptable.lock);
@@ -389,8 +488,7 @@ fork(void)
 
   np->state = RUNNABLE;
    // only enqueue here since we are sure that allocation is successful
-  // Phase 1: always enqueue in our single active level
-  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL);
   enqueue_proc(np, q);
 
   release(&ptable.lock);
@@ -439,9 +537,7 @@ exit(void)
   }
 
   // Process exited, remove from its queue
-  // Phase 1: ALL procs are in first level, so we always remove procs from there
-  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
-  unqueue_proc(curproc, q);
+  remove_proc_from_levels(curproc);
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
@@ -516,8 +612,9 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    int i, prev_idx, k;
+    int i, prev_idx, k, nk;
     int found = 0;
+    struct level_queue *nq;
     for (k = 0; k < RSDL_LEVELS; ++k) {
       q = &ptable.active[k];
       acquire(&q->lock);
@@ -568,11 +665,12 @@ scheduler(void)
       if (p->ticks_left == 0) {
         // proc used up quantum: enqueue to lower priority
         p->ticks_left = RSDL_PROC_QUANTUM;
+        nk = k + 1;
       } else {
         // proc yielded with remaining quantum: re-enqueue to same level
+        nk = k;
       }
 
-      // Phase 1: We only have 1 level, so re-enqueue to same level in either case
       // only try to re-enqueue proc if it was not removed before
       // e.g. when it calls exit() (state == ZOMBIE), it removes itself so no need to re-enqueue
       if (q->numproc != 0 && p->state != ZOMBIE) {
@@ -580,7 +678,12 @@ scheduler(void)
         if (prev_idx == -1) {
           panic("re-enqueue of proc failed");
         }
-        enqueue_proc(p, q);
+        nq = find_vacant_queue(nk);
+        if (is_expired_set(nq)) {
+          // proc quantum refresh case 2: proc moved to expired set
+          p->ticks_left = RSDL_PROC_QUANTUM;
+        }
+        enqueue_proc(p, nq);
       }
 
       // Process is done running for now.
@@ -588,6 +691,22 @@ scheduler(void)
       c->proc = 0;
     } else {
       // No RUNNABLE proc found; Can happen before initcode runs, all procs sleeping but will return after n ms, etc.
+      // Since there are no procs ready in active set, we swap sets
+      nq = ptable.active;
+      ptable.active = ptable.expired;
+      ptable.expired = nq;
+
+      // re-enqueue procs in old active set (expired set) to new active set
+      for (k = 0; k < RSDL_LEVELS; ++k) {
+        q = &ptable.expired[k];
+        while (q->numproc != 0) {
+          p = q->proc[0];
+          unqueue_proc(p, q);
+
+          nq = find_vacant_queue(RSDL_STARTING_LEVEL);
+          enqueue_proc(p, nq);
+        }
+      }
     }
     release(&ptable.lock);
 
