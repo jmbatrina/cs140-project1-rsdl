@@ -43,6 +43,22 @@ static struct proc *initproc;
 
 int nextpid = 1;
 
+int
+is_active_set(struct level_queue *q)
+{
+  // NOTE: assumes that &ptable.level[0][0] <= q < &ptable.level[1][RSDL_LEVELS]
+  //       since each level queue is created in the contiguous ptable.level
+  // q is in active set if its address is within ptable.active
+  // otherwise since q is inside ptable.level, then it must be in ptable.expired
+  return ptable.active <= q
+         && q < &ptable.active[RSDL_LEVELS];
+}
+
+int is_expired_set(struct level_queue *q)
+{
+  return !is_active_set(q);
+}
+
 // Variables for scheduling logs. See schedlog() and scheduler() below
 int schedlog_active = 0;
 int schedlog_lasttick = 0;
@@ -50,6 +66,29 @@ int schedlog_lasttick = 0;
 void schedlog(int n) {
   schedlog_active = 1;
   schedlog_lasttick = ticks + n;
+}
+
+void print_schedlog(void) {
+  struct proc *pp;
+  struct level_queue *qq;
+
+  struct level_queue *set[] = {ptable.active, ptable.expired};
+  for (int s = 0; s < 2; ++s) {
+    char *set_name = (is_active_set(&set[s][0])) ? "active" : "expired";
+    for (int k = 0; k < RSDL_LEVELS; ++k) {
+      qq = &set[s][k];
+      acquire(&qq->lock);
+      cprintf("%d|%s|0(0)", ticks, set_name);
+      for(int i = 0; i < qq->numproc; ++i) {
+        pp = qq->proc[i];
+        if (pp->state == UNUSED) continue;
+        else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
+      }
+      release(&qq->lock);
+
+      cprintf("\n");
+    }
+  }
 }
 
 extern void forkret(void);
@@ -75,8 +114,8 @@ pinit(void)
       for (int i = 0; i < NPROC; ++i){
         lq->proc[i] = NULL;
       }
+      release(&lq->lock);
     }
-    release(&lq->lock);
   }
 
   // initialize pointers to active and expired sets
@@ -315,22 +354,6 @@ find_vacant_queue(int start)
   }
 
   return &set[level];
-}
-
-int
-is_active_set(struct level_queue *q)
-{
-  // NOTE: assumes that &ptable.level[0][0] <= q < &ptable.level[1][RSDL_LEVELS]
-  //       since each level queue is created in the contiguous ptable.level
-  // q is in active set if its address is within ptable.active
-  // otherwise since q is inside ptable.level, then it must be in ptable.expired
-  return ptable.active <= q
-         && q < &ptable.active[RSDL_LEVELS];
-}
-
-int is_expired_set(struct level_queue *q)
-{
-  return !is_active_set(q);
 }
 
 //PAGEBREAK: 32
@@ -644,18 +667,7 @@ scheduler(void)
       p->state = RUNNING;
 
       if (schedlog_active && ticks <= schedlog_lasttick) {
-        struct proc *pp;
-
-        cprintf("%d|active|0(0)", ticks);
-        acquire(&q->lock);
-        for(i = 0; i < q->numproc; ++i){
-          pp = q->proc[i];
-          if (pp->state == UNUSED) continue;
-          else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
-        }
-        release(&q->lock);
-
-        cprintf("\n");
+        print_schedlog();
       }
 
       swtch(&(c->scheduler), p->context);
