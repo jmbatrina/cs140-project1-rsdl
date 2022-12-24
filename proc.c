@@ -20,23 +20,22 @@
 // TODO: check if we need to release ptable.lock before each (debug) panic
 // TODO: Add tests for en/unqueue (automated testcases????)
 
-struct level_node {
-  struct proc proc;
-  // must only be modified by enqueue_node and unqueue_proc
-  struct level_node *next;
-};
-
+// NOTE: each level is represented as an array with NPROC elements
+//       for simplicity (since the previous linke list approach had a lot of mysterious crashes)
+// TODO: switch to circular array representation so that dequeue of front (common case) is O(1)
 struct level_queue{
   struct spinlock lock;
-  // must only be modified by enqueue_node and unqueue_proc
+  // must only be modified by enqueue_proc and unqueue_proc
   int numproc;
-  struct level_node *head;
+  struct proc *proc[NPROC];
 };
 
 struct {
   struct spinlock lock;
-  struct level_node node[RSDL_LEVELS*NPROC];
-  struct level_queue active[RSDL_LEVELS];
+  struct proc proc[RSDL_LEVELS*NPROC];
+  // pointer to active set; For Phase 1, active = &level at all times
+  struct level_queue *active;
+  struct level_queue level[RSDL_LEVELS];
 } ptable;
 
 static struct proc *initproc;
@@ -60,22 +59,20 @@ static void wakeup1(void *chan);
 void
 pinit(void)
 {
-  struct level_node *n;
   struct level_queue *lq;
   initlock(&ptable.lock, "ptable");
 
-  // To be sure, explicitly initialize next pointers to NULL
+  // To be sure, explicitly initialize all queues to empty
   acquire(&ptable.lock);
-  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-    n->next = NULL;
+  for (int k = 0; k < RSDL_LEVELS; ++k){
+    lq = &ptable.level[k];
+    lq->numproc = 0;
+    for (int i = 0; i < NPROC; ++i){
+      lq->proc[i] = NULL;
+    }
   }
 
-  // Explicitly initialize all queues to empty
-  for (lq = &ptable.active[0]; lq < &ptable.active[RSDL_LEVELS]; lq++){
-    initlock(&lq->lock, "level queue");
-    lq->numproc = 0;
-    lq->head = NULL;
-  }
+  ptable.active = &ptable.level[0];
   release(&ptable.lock);
 }
 
@@ -119,54 +116,46 @@ myproc(void) {
 }
 
 void
-enqueue_node(struct level_node *n, struct level_queue *q)
+enqueue_proc(struct proc *p, struct level_queue *q)
 {
-  if (n == NULL) {
+  if (p == NULL) {
     panic("enqueue of NULL proc node");
     return;
   }
 
-  if (n->proc.state == UNUSED) {
+  if (p->state == UNUSED) {
     panic("enqueue of UNUSED proc");
+    return;
+  }
+
+  if (q == NULL) {
+    panic("enqueue in NULL queue");
+    return;
+  }
+
+  if (q->numproc < 0) {
+    panic("unqueue on queue with NEGATIVE numproc");
+    return;
+  }
+
+  if (q->numproc > NPROC) {
+    panic("unqueue on queue with numproc > NPROC");
     return;
   }
 
   acquire(&q->lock);
   // for debug, see below
-  int is_full_numproc = (q->numproc >= NPROC);
-  int is_full = 0;
-
-  if (q->head == NULL){
-    q->head = n;
-  } else {
-    struct level_node *nn = q->head;
-    int i;
-
-    for (i = 0; nn->next != NULL && i < NPROC; nn = nn->next, ++i)
-      ;
-    if (i >= NPROC || nn->next != NULL) {
-      is_full = 1;  // no free slot in level found
-    } else {
-      nn->next = n;
-    }
-  }
-
-  if (is_full && is_full_numproc) {
+  if (q->numproc >= NPROC) {
     panic("enqueue in full level");
-  } else if (is_full && !is_full_numproc) {
-    panic("enqueue in full level, detected late due to faulty accounting of numproc");
-  } else {  // enqueue successful
-    if (!is_full && is_full_numproc)
-      cprintf("enqueue full level FALSE POSITIVE due to faulty accounting of numproc");
-
-    n->next = NULL;
-    q->numproc++;   // increment number of procs in this level
+  } else {
+    // enqueue *p and increment number of procs in this level
+    q->proc[q->numproc++] = p;
   }
   release(&q->lock);
 }
 
 // NOTE: *un*queue intentional since proc in middle of queue can be removed
-struct level_node*
+struct proc*
 unqueue_proc(struct proc *p, struct level_queue *q)
 {
   if (p == NULL) {
@@ -174,44 +163,44 @@ unqueue_proc(struct proc *p, struct level_queue *q)
     return NULL;
   }
 
-  if (q->head == NULL) {
-    if (q->numproc != 0)
-      panic("unqueue on empty level, mismatch due to faulty accounting of numproc");
-    else
-      panic("unqueue on empty level");
-
+  if (q == NULL) {
+    panic("unqueue in NULL queue");
     return NULL;
   }
 
   if (q->numproc == 0) {
-    cprintf("unqueue empty FALSE POSITIVE due to faulty accounting of numproc");
+    panic("unqueue on empty level");
+    return NULL;
   }
 
-  struct level_node *n = q->head;
+  if (q->numproc < 0) {
+    panic("unqueue on queue with NEGATIVE numproc");
+    return NULL;
+  }
+
+  if (q->numproc > NPROC) {
+    panic("unqueue on queue with numproc > NPROC");
+    return NULL;
+  }
+
   int found = 0;
+  int i;
 
   acquire(&q->lock);
-  if (&q->head->proc == p) {
-    found = 1;
-    q->head = n->next->next;
-  } else {
-    struct level_node *nn = q->head;
-    int i;
-
-    for (i = 0; nn->next != NULL && i < NPROC; nn = nn->next, ++i) {
-      if (&nn->next->proc == p) {
-        // found proc, remove from current queue linked list
-        n = nn->next;
-        found = 1;
-        nn->next = nn->next->next;
-        break;
-      }
+  for (i = 0; i < q->numproc; ++i) {
+    if (q->proc[i] == p) {
+      // found proc, remove from current queue linked list
+      found = 1;
+      break;
     }
   }
 
   if (found) {
-    n->next = NULL;
-    q->numproc--;   // increment number of procs in this level
+    // move succeeding procs up the queue
+    for (i = i+1; i < q->numproc; ++i) {
+      q->proc[i-1] = q->proc[i];
+    }
+    q->numproc--;   // decrement number of procs in this level
   }
   release(&q->lock);
 
@@ -221,7 +210,7 @@ unqueue_proc(struct proc *p, struct level_queue *q)
   }
 
   // we only reach here if unqueue is successful
-  return n;
+  return p;
 }
 
 //PAGEBREAK: 32
@@ -233,13 +222,11 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
-  struct level_node *n;
   char *sp;
 
   acquire(&ptable.lock);
 
-  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-    p = &n->proc;
+  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
     if(p->state == UNUSED)
       goto found;
   }
@@ -264,7 +251,7 @@ found:
   // only enqueue here since we are sure that allocation is successful
   // Phase 1: always enqueue in our single active level
   struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
-  enqueue_node(n, q);
+  enqueue_proc(p, q);
 
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
@@ -403,7 +390,6 @@ exit(void)
 {
   struct proc *curproc = myproc();
   struct proc *p;
-  struct level_node *n;
   int fd;
 
   if(curproc == initproc)
@@ -428,8 +414,7 @@ exit(void)
   wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
-  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-    p = &n->proc;
+  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
     if(p->parent == curproc){
       p->parent = initproc;
       if(p->state == ZOMBIE)
@@ -449,7 +434,6 @@ int
 wait(void)
 {
   struct proc *p;
-  struct level_node *n;
   int havekids, pid;
   struct proc *curproc = myproc();
   
@@ -457,8 +441,7 @@ wait(void)
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
-    for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-      p = &n->proc;
+    for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
       if(p->parent != curproc)
         continue;
       havekids = 1;
@@ -507,7 +490,6 @@ void
 scheduler(void)
 {
   struct proc *p;
-  struct level_node *n;
   struct cpu *c = mycpu();
   c->proc = 0;
   
@@ -517,8 +499,7 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-      p = &n->proc;
+    for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
@@ -534,11 +515,9 @@ scheduler(void)
           schedlog_active = 0;
         } else {
           struct proc *pp;
-          struct level_node *nn;
 
           cprintf("%d|active|0(0)", ticks);
-          for(nn = &ptable.node[0]; nn < &ptable.node[RSDL_LEVELS*NPROC]; nn++){
-            pp = &nn->proc;
+          for(pp = &ptable.proc[0]; pp < &ptable.proc[RSDL_LEVELS*NPROC]; pp++){
             if (pp->state == UNUSED) continue;
             else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
           }
@@ -662,10 +641,8 @@ static void
 wakeup1(void *chan)
 {
   struct proc *p;
-  struct level_node *n;
 
-  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-    p = &n->proc;
+  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
   }
@@ -687,11 +664,9 @@ int
 kill(int pid)
 {
   struct proc *p;
-  struct level_node *n;
 
   acquire(&ptable.lock);
-  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-    p = &n->proc;
+  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
@@ -722,12 +697,10 @@ procdump(void)
   };
   int i;
   struct proc *p;
-  struct level_node *n;
   char *state;
   uint pc[10];
 
-  for(n = &ptable.node[0]; n < &ptable.node[RSDL_LEVELS*NPROC]; n++){
-    p = &n->proc;
+  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
     if(p->state == UNUSED)
       continue;
     if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
