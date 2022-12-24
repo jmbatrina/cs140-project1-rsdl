@@ -155,36 +155,37 @@ enqueue_proc(struct proc *p, struct level_queue *q)
 }
 
 // NOTE: *un*queue intentional since proc in middle of queue can be removed
-struct proc*
+// returns index of proc in current level
+int
 unqueue_proc(struct proc *p, struct level_queue *q)
 {
   if (p == NULL) {
     panic("unqueue of NULL proc");
-    return NULL;
+    return -1;
   }
 
   if (q == NULL) {
     panic("unqueue in NULL queue");
-    return NULL;
+    return -1;
   }
 
   if (q->numproc == 0) {
     panic("unqueue on empty level");
-    return NULL;
+    return -1;
   }
 
   if (q->numproc < 0) {
     panic("unqueue on queue with NEGATIVE numproc");
-    return NULL;
+    return -1;
   }
 
   if (q->numproc > NPROC) {
     panic("unqueue on queue with numproc > NPROC");
-    return NULL;
+    return -1;
   }
 
   int found = 0;
-  int i;
+  int i, j;
 
   acquire(&q->lock);
   for (i = 0; i < q->numproc; ++i) {
@@ -197,8 +198,8 @@ unqueue_proc(struct proc *p, struct level_queue *q)
 
   if (found) {
     // move succeeding procs up the queue
-    for (i = i+1; i < q->numproc; ++i) {
-      q->proc[i-1] = q->proc[i];
+    for (j = i+1; j < q->numproc; ++j) {
+      q->proc[j-1] = q->proc[j];
     }
     q->numproc--;   // decrement number of procs in this level
   }
@@ -206,11 +207,11 @@ unqueue_proc(struct proc *p, struct level_queue *q)
 
   if (!found) {
     panic("unqueue of node not belonging to level");
-    return NULL;
+    return -1;
   }
 
   // we only reach here if unqueue is successful
-  return p;
+  return i;
 }
 
 //PAGEBREAK: 32
@@ -493,45 +494,78 @@ scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
   
+  // Phase 1: all procs are in a single level
+  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+    int prev_idx;
+    int i = 0;
+    int k = RSDL_STARTING_LEVEL;
+    while (k < RSDL_LEVELS) {
+      // NOTE: ugly (,) operator used here to ensure that i is always incremented
+      if (p = q->proc[i], i++ < q->numproc){
+        if(p->state != RUNNABLE)
+          continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      p->ticks_left = RSDL_PROC_QUANTUM;
-      if (schedlog_active) {
-        if (ticks > schedlog_lasttick) {
-          schedlog_active = 0;
-        } else {
-          struct proc *pp;
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
 
-          cprintf("%d|active|0(0)", ticks);
-          for(pp = &ptable.proc[0]; pp < &ptable.proc[RSDL_LEVELS*NPROC]; pp++){
-            if (pp->state == UNUSED) continue;
-            else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
+        if (schedlog_active) {
+          if (ticks > schedlog_lasttick) {
+            schedlog_active = 0;
+          } else {
+            struct proc *pp;
+
+            cprintf("%d|active|0(0)", ticks);
+            for(pp = &ptable.proc[0]; pp < &ptable.proc[RSDL_LEVELS*NPROC]; pp++){
+              if (pp->state == UNUSED) continue;
+              else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
+            }
+
+            cprintf("\n");
+          }
+        }
+
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+
+        // proc has given up control to scheduler. Check if we need
+        // to replenish quantum or move to lower priority queue
+        if (p->state != UNUSED && p->state != ZOMBIE) {
+          if (p->ticks_left == 0) {
+            // proc used up quantum: enqueue to lower priority
+            p->ticks_left = RSDL_PROC_QUANTUM;
+          } else {
+            // proc yielded with remaining quantum: re-enqueue to same level
           }
 
-          cprintf("\n");
+          prev_idx = unqueue_proc(p, q);
+          if (prev_idx == -1) {
+            panic("re-enqueue of proc failed");
+          }
+          enqueue_proc(p, q);
+
+          if (prev_idx != q->numproc-1)
+            i = prev_idx; // start looking for proc directly AFTER this proc
         }
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      } else {
+        // all active procs in this level have ran
+        // move to lower prio queue
+        ++k;
+        // NOTE: For Phase 1 there is only 1 queue, so we don't need to update *q
       }
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
     }
     release(&ptable.lock);
 
