@@ -547,14 +547,17 @@ scheduler(void)
             // proc yielded with remaining quantum: re-enqueue to same level
           }
 
-          prev_idx = unqueue_proc(p, q);
-          if (prev_idx == -1) {
-            panic("re-enqueue of proc failed");
-          }
-          enqueue_proc(p, q);
+          // If proc is ready (i.e. not sleeping), re-enqueue it
+          if (p->state != SLEEPING) {
+            prev_idx = unqueue_proc(p, q);
+            if (prev_idx == -1) {
+              panic("re-enqueue of proc failed");
+            }
+            enqueue_proc(p, q);
 
-          if (prev_idx != q->numproc-1)
-            i = prev_idx; // start looking for proc directly AFTER this proc
+            if (prev_idx != q->numproc-1)
+              i = prev_idx; // start looking for proc directly AFTER this proc
+          }
         }
 
         // Process is done running for now.
