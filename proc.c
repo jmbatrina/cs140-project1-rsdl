@@ -313,7 +313,7 @@ next_level(int start, int use_expired)
 
   int k = start;
   for ( ; k < RSDL_LEVELS; ++k) {
-    if (set[k].numproc < NPROC-1) {
+    if (set[k].numproc < NPROC) {
       break;
     }
   }
