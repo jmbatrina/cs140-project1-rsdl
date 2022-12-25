@@ -8,8 +8,8 @@ int main() {
     // AFTER running usertests.c. This does not happen when compared to Lab 5 baseline
     for (int i = 0; i < 3; i++) {
         if (fork() == 0) {
-            char *argv[] = {"loop", 0};
-            exec("loop", argv);
+            char *argv[] = {"test_loop", 0};
+            exec("test_loop", argv);
         }
     }
 
