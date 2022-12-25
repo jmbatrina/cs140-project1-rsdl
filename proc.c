@@ -310,6 +310,8 @@ next_level(int start, int use_expired)
 {
   // TODO: ptable.{active, expired} accessed but not modified. Do we need to acquire lock?
   const struct level_queue *set = (use_expired) ? ptable.expired : ptable.active;
+  if (start < 0)
+    return -1;
 
   int k = start;
   for ( ; k < RSDL_LEVELS; ++k) {
@@ -338,12 +340,21 @@ next_expired_level(int start)
 }
 
 struct level_queue*
-find_vacant_queue(int start)
+find_vacant_queue(int active_start, int expired_start)
 {
-  int level = next_active_level(start);
+  int level = next_active_level(active_start);
   struct level_queue *set = ptable.active;
-  if (level == -1) {
-    level = next_expired_level(RSDL_STARTING_LEVEL);
+
+  if (level == -1) {  // no lower prio level available
+    // re-enqueue in expired set instead, starting at original queue
+    // TODO: Confirm if this new behavior is correct
+    //       The previous commit starts search in expired set
+    //       from RSDL_STARTING_LEVEL to mimic behavior in linux RSDL
+    //       patch (link below), but this is *different* to behavior in Project document
+    //       https://web.archive.org/web/20070317221320/http://ck.kolivas.org/patches/staircase-deadline/2.6.21-rc3-mm2-rsdl-0.29.patch
+    //       This new behavior has the consequence of procs only going down in priority without "boosting"
+    //       (once they get to bottom prio, they always stay there even between swaps)
+    level = next_expired_level(expired_start);
     set = ptable.expired;
   }
 
@@ -443,7 +454,7 @@ userinit(void)
 
   p->state = RUNNABLE;
   // only enqueue here since we are sure that allocation is successful
-  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL);
+  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
   enqueue_proc(p, q);
 
   release(&ptable.lock);
@@ -512,7 +523,7 @@ fork(void)
 
   np->state = RUNNABLE;
    // only enqueue here since we are sure that allocation is successful
-  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL);
+  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
   enqueue_proc(np, q);
 
   release(&ptable.lock);
@@ -691,7 +702,9 @@ scheduler(void)
         if (prev_idx == -1) {
           panic("re-enqueue of proc failed");
         }
-        nq = find_vacant_queue(nk);
+        // find vacant queue, starting from level nk as decided abovE
+        // if no available level in active set, enqueue to expired set at original level (k)
+        nq = find_vacant_queue(nk, k);
         if (is_expired_set(nq)) {
           // proc quantum refresh case 2: proc moved to expired set
           p->ticks_left = RSDL_PROC_QUANTUM;
@@ -718,7 +731,9 @@ scheduler(void)
           p->ticks_left = RSDL_PROC_QUANTUM;
           unqueue_proc(p, q);
 
-          nq = find_vacant_queue(RSDL_STARTING_LEVEL);
+          // re-enqueue to same level but in active set, or below
+          // TODO: see comment in find_vacant_queue() about linux rsdl patch behavior
+          nq = find_vacant_queue(k, k);
           enqueue_proc(p, nq);
         }
       }
