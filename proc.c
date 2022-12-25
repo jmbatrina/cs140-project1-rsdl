@@ -496,6 +496,7 @@ scheduler(void)
   
   // Phase 1: all procs are in a single level
   struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+  struct level_queue *nq;
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -505,6 +506,7 @@ scheduler(void)
     int prev_idx;
     int i = 0;
     int k = RSDL_STARTING_LEVEL;
+    int ni, nk;
     while (k < RSDL_LEVELS) {
       // NOTE: ugly (,) operator used here to ensure that i is always incremented
       if (p = q->proc[i], i++ < q->numproc){
@@ -568,6 +570,31 @@ scheduler(void)
         // move to lower prio queue
         ++k;
         // NOTE: For Phase 1 there is only 1 queue, so we don't need to update *q
+      }
+
+      // Check if there are (new) processes in upper priority levels
+      ni = i;
+      for (nk = 0; nk <= k; ++nk) {
+        nq = &ptable.active[nk];
+        if (nq->numproc == 0)
+          continue;
+
+        // Naive implementation: simply check if any proc in queue is ready
+        // TODO: More efficient implementation (e.g. add q->inactive which is
+        //       incremented whenever a proc in q has its state set to SLEEP/ZOMBIE
+        //       then use (nq->numproc - nq->inactive) == 0 for check above
+        for (ni = 0; ni < nq->numproc; ++ni)
+          if (nq->proc[ni]->state == RUNNABLE)
+            break;
+
+        if (ni < nq->numproc)   // found ready proc
+          break;
+      }
+
+      if (nk < k || (nk == k && ni < i)) {
+        k = nk;
+        q = &ptable.active[k];
+        i = ni;
       }
     }
     release(&ptable.lock);
