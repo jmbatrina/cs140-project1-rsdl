@@ -32,7 +32,7 @@ struct level_queue{
 
 struct {
   struct spinlock lock;
-  struct proc proc[RSDL_LEVELS*NPROC];
+  struct proc proc[NPROC];
   // pointer to active set; For Phase 1, active = &level at all times
   struct level_queue *active;
   struct level_queue level[RSDL_LEVELS];
@@ -227,7 +227,7 @@ allocproc(void)
 
   acquire(&ptable.lock);
 
-  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
+  for(p = &ptable.proc[0]; p < &ptable.proc[NPROC]; p++){
     if(p->state == UNUSED)
       goto found;
   }
@@ -415,7 +415,7 @@ exit(void)
   wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
-  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
+  for(p = &ptable.proc[0]; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
       p->parent = initproc;
       if(p->state == ZOMBIE)
@@ -442,7 +442,7 @@ wait(void)
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
-    for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
+    for(p = &ptable.proc[0]; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
       havekids = 1;
@@ -706,7 +706,7 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
+  for(p = &ptable.proc[0]; p < &ptable.proc[NPROC]; p++){
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
   }
@@ -730,7 +730,7 @@ kill(int pid)
   struct proc *p;
 
   acquire(&ptable.lock);
-  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
+  for(p = &ptable.proc[0]; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
@@ -764,7 +764,7 @@ procdump(void)
   char *state;
   uint pc[10];
 
-  for(p = &ptable.proc[0]; p < &ptable.proc[RSDL_LEVELS*NPROC]; p++){
+  for(p = &ptable.proc[0]; p < &ptable.proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
     if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
