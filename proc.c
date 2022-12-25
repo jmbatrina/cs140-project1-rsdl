@@ -7,12 +7,6 @@
 #include "proc.h"
 #include "spinlock.h"
 
-// Phase 1-2: Force RSDL_LEVELS to 1 and RSDL_STARTING_LEVEL to 0
-#undef RSDL_LEVELS
-#define RSDL_LEVELS 1
-#undef RSDL_STARTING_LEVEL
-#define RSDL_STARTING_LEVEL 0
-
 #define NULL (void *) 0x0
 
 // TODO: check if we need to release ptable.lock before each (debug) panic
@@ -78,7 +72,7 @@ void print_schedlog(void) {
     for (int k = 0; k < RSDL_LEVELS; ++k) {
       qq = &set[s][k];
       acquire(&qq->lock);
-      cprintf("%d|%s|0(0)", ticks, set_name);
+      cprintf("%d|%s|%d(0)", ticks, set_name, k);
       for(int i = 0; i < qq->numproc; ++i) {
         pp = qq->proc[i];
         if (pp->state == UNUSED) continue;
@@ -89,6 +83,7 @@ void print_schedlog(void) {
       cprintf("\n");
     }
   }
+  // TODO: should each "block" of schedlog info per tick be separated by a newline?
 }
 
 extern void forkret(void);
