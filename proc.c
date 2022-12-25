@@ -12,16 +12,6 @@
 // TODO: check if we need to release ptable.lock before each (debug) panic
 // TODO: Add tests for en/unqueue (automated testcases????)
 
-// NOTE: each level is represented as an array with NPROC elements
-//       for simplicity (since the previous linke list approach had a lot of mysterious crashes)
-// TODO: switch to circular array representation so that dequeue of front (common case) is O(1)
-struct level_queue{
-  struct spinlock lock;
-  // must only be modified by enqueue_proc and unqueue_proc
-  int numproc;
-  struct proc *proc[NPROC];
-};
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -106,6 +96,7 @@ pinit(void)
       initlock(&lq->lock, "level queue");
       acquire(&lq->lock);
       lq->numproc = 0;
+      lq->ticks_left = RSDL_LEVEL_QUANTUM;
       for (int i = 0; i < NPROC; ++i){
         lq->proc[i] = NULL;
       }
@@ -662,6 +653,7 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
+      c->queue = q;
       switchuvm(p);
       p->state = RUNNING;
 
@@ -703,6 +695,7 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+      c->queue = NULL;
     } else {
       // No RUNNABLE proc found; Can happen before initcode runs, all procs sleeping but will return after n ms, etc.
       // Since there are no procs ready in active set, we swap sets
@@ -713,6 +706,7 @@ scheduler(void)
       // re-enqueue procs in old active set (expired set) to new active set
       for (k = 0; k < RSDL_LEVELS; ++k) {
         q = &ptable.expired[k];
+        q->ticks_left = RSDL_LEVEL_QUANTUM; // replenish level-local quantum
         while (q->numproc != 0) {
           p = q->proc[0];
           // proc will be re-enqueued to new level, replenish quantum

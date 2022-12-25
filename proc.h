@@ -1,3 +1,16 @@
+#include "spinlock.h"
+
+// NOTE: each level is represented as an array with NPROC elements
+//       for simplicity (since the previous linke list approach had a lot of mysterious crashes)
+// TODO: switch to circular array representation so that dequeue of front (common case) is O(1)
+struct level_queue {
+  struct spinlock lock;
+  // must only be modified by enqueue_proc and unqueue_proc
+  int numproc;
+  int ticks_left;
+  struct proc *proc[NPROC];
+};
+
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID
@@ -8,6 +21,7 @@ struct cpu {
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
+  struct level_queue *queue;   // level queue where proc can be found
 };
 
 extern struct cpu cpus[NCPU];

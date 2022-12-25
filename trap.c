@@ -104,7 +104,14 @@ trap(struct trapframe *tf)
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER){
-    if (--myproc()->ticks_left == 0){
+    // level queue must be known
+    // NOTE: struct cpu cpus[NCPUS] is a global variable, so all cpus[i].queue members are initialized to NULL
+    if (!mycpu()->queue)
+      panic("Running process located outside active/expired set.");
+
+    int proc_ticks = --myproc()->ticks_left;
+    int level_ticks = --mycpu()->queue->ticks_left;
+    if (proc_ticks == 0 || level_ticks == 0){
       yield();
     }
   }
