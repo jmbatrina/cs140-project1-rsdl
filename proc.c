@@ -62,7 +62,7 @@ void print_schedlog(void) {
     for (int k = 0; k < RSDL_LEVELS; ++k) {
       qq = &set[s][k];
       acquire(&qq->lock);
-      cprintf("%d|%s|%d(0)", ticks, set_name, k);
+      cprintf("%d|%s|%d(%d)", ticks, set_name, k, qq->ticks_left);
       for(int i = 0; i < qq->numproc; ++i) {
         pp = qq->proc[i];
         if (pp->state == UNUSED) continue;
