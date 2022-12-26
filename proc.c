@@ -490,112 +490,84 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p = NULL;
+  struct level_queue *q = NULL;
   struct cpu *c = mycpu();
   c->proc = 0;
   
-  // Phase 1: all procs are in a single level
-  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
-  struct level_queue *nq;
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    int prev_idx;
-    int i = 0;
-    int k = RSDL_STARTING_LEVEL;
-    int ni, nk;
-    while (k < RSDL_LEVELS) {
-      // NOTE: ugly (,) operator used here to ensure that i is always incremented
-      if (p = q->proc[i], i++ < q->numproc){
-        if(p->state != RUNNABLE)
-          continue;
-
-        // Switch to chosen process.  It is the process's job
-        // to release ptable.lock and then reacquire it
-        // before jumping back to us.
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-
-        if (schedlog_active) {
-          if (ticks > schedlog_lasttick) {
-            schedlog_active = 0;
-          } else {
-            struct proc *pp;
-
-            cprintf("%d|active|0(0)", ticks);
-            for(pp = &ptable.proc[0]; pp < &ptable.proc[RSDL_LEVELS*NPROC]; pp++){
-              if (pp->state == UNUSED) continue;
-              else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
-            }
-
-            cprintf("\n");
-          }
-        }
-
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-
-        // proc has given up control to scheduler. Check if we need
-        // to replenish quantum or move to lower priority queue
-        if (p->state != UNUSED && p->state != ZOMBIE) {
-          if (p->ticks_left == 0) {
-            // proc used up quantum: enqueue to lower priority
-            p->ticks_left = RSDL_PROC_QUANTUM;
-          } else {
-            // proc yielded with remaining quantum: re-enqueue to same level
-          }
-
-          // If proc is ready (i.e. not sleeping), re-enqueue it
-          if (p->state != SLEEPING) {
-            prev_idx = unqueue_proc(p, q);
-            if (prev_idx == -1) {
-              panic("re-enqueue of proc failed");
-            }
-            enqueue_proc(p, q);
-
-            if (prev_idx != q->numproc-1)
-              i = prev_idx; // start looking for proc directly AFTER this proc
-          }
-        }
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      } else {
-        // all active procs in this level have ran
-        // move to lower prio queue
-        ++k;
-        // NOTE: For Phase 1 there is only 1 queue, so we don't need to update *q
-      }
-
-      // Check if there are (new) processes in upper priority levels
-      ni = i;
-      for (nk = 0; nk <= k; ++nk) {
-        nq = &ptable.active[nk];
-        if (nq->numproc == 0)
-          continue;
-
-        // Naive implementation: simply check if any proc in queue is ready
-        // TODO: More efficient implementation (e.g. add q->inactive which is
-        //       incremented whenever a proc in q has its state set to SLEEP/ZOMBIE
-        //       then use (nq->numproc - nq->inactive) == 0 for check above
-        for (ni = 0; ni < nq->numproc; ++ni)
-          if (nq->proc[ni]->state == RUNNABLE)
-            break;
-
-        if (ni < nq->numproc)   // found ready proc
+    int i, prev_idx, k;
+    int found = 0;
+    for (k = 0; k < RSDL_LEVELS; ++k) {
+      q = &ptable.active[k];
+      for (i = 0; i < q->numproc; ++i ) {
+        p = q->proc[i];
+        if(p->state == RUNNABLE) {
+          found = 1;
           break;
+        }
+      }
+      if (found)
+        break;
+    }
+
+    if (found) {
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      if (schedlog_active) {
+        if (ticks > schedlog_lasttick) {
+          schedlog_active = 0;
+        } else {
+          struct proc *pp;
+
+          cprintf("%d|active|0(0)", ticks);
+          for(pp = &ptable.proc[0]; pp < &ptable.proc[RSDL_LEVELS*NPROC]; pp++){
+            if (pp->state == UNUSED) continue;
+            else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
+          }
+
+          cprintf("\n");
+        }
       }
 
-      if (nk < k || (nk == k && ni < i)) {
-        k = nk;
-        q = &ptable.active[k];
-        i = ni;
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // proc has given up control to scheduler. Check if we need
+      // to replenish quantum or move to lower priority queue
+      if (p->state != UNUSED && p->state != ZOMBIE) {
+        if (p->ticks_left == 0) {
+          // proc used up quantum: enqueue to lower priority
+          p->ticks_left = RSDL_PROC_QUANTUM;
+        } else {
+          // proc yielded with remaining quantum: re-enqueue to same level
+        }
+
+        // If proc is ready (i.e. not sleeping), re-enqueue it
+        if (p->state != SLEEPING) {
+          prev_idx = unqueue_proc(p, q);
+          if (prev_idx == -1) {
+            panic("re-enqueue of proc failed");
+          }
+          enqueue_proc(p, q);
+        }
       }
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    } else {
+      // No RUNNABLE proc found; Can happen before initcode runs, all procs sleeping but will return after n ms, etc.
     }
     release(&ptable.lock);
 
