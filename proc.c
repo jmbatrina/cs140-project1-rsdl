@@ -531,7 +531,8 @@ scheduler(void)
           struct proc *pp;
 
           cprintf("%d|active|0(0)", ticks);
-          for(pp = &ptable.proc[0]; pp < &ptable.proc[RSDL_LEVELS*NPROC]; pp++){
+          for(i = 0; i < q->numproc; ++i){
+            pp = q->proc[i];
             if (pp->state == UNUSED) continue;
             else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
           }
