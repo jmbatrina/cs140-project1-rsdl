@@ -371,7 +371,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->ticks_left = RSDL_PROC_QUANTUM;
-  p->default_level = -1;  // indicate no default_level explicitly set
+  p->default_level = -1;
 
   release(&ptable.lock);
 
@@ -434,7 +434,8 @@ userinit(void)
 
   p->state = RUNNABLE;
   // only enqueue here since we are sure that allocation is successful
-  struct level_queue *q = find_available_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
+  int init_level = (p->default_level == -1) ? RSDL_STARTING_LEVEL : p->default_level;
+  struct level_queue *q = find_available_queue(init_level, init_level);
   enqueue_proc(p, q);
 
   release(&ptable.lock);
@@ -464,12 +465,25 @@ growproc(int n)
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
+// Accessible as either fork(void) or priofork(int) syscalls
 int
-fork(void)
+priofork(int default_level)
 {
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
+
+  if (default_level >= RSDL_LEVELS) {
+    panic("prioallocproc: default_level too large");
+    return -1;
+  }
+
+  // explicitly require -1 to indicate no default_level
+  // explicitly set, use RSDL_STARTING_LEVEL
+  if (default_level < -1) {
+    panic("prioallocproc: negative default_level != -1");
+    return -1;
+  }
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -501,14 +515,23 @@ fork(void)
 
   acquire(&ptable.lock);
 
+  np->default_level = default_level;  // set priority level
   np->state = RUNNABLE;
    // only enqueue here since we are sure that allocation is successful
-  struct level_queue *q = find_available_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
+  int init_level = (np->default_level == -1) ? RSDL_STARTING_LEVEL : np->default_level;
+  struct level_queue *q = find_available_queue(init_level, init_level);
   enqueue_proc(np, q);
 
   release(&ptable.lock);
 
   return pid;
+}
+
+// original fork() call
+int
+fork(void)
+{
+  return priofork(-1);
 }
 
 // Exit the current process.  Does not return.

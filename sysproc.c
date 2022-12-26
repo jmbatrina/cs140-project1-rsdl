@@ -14,6 +14,15 @@ sys_fork(void)
 }
 
 int
+sys_priofork(void)
+{
+  int default_level;
+  if(argint(0, &default_level) < 0)
+    return -1;
+  return priofork(default_level);
+}
+
+int
 sys_exit(void)
 {
   exit();
