@@ -64,6 +64,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int ticks_left;              // Remaining process quantum (in ticks)
+  int default_level;           // starting level for initial run and during swapping of sets
 };
 
 // Process memory is laid out contiguously, low addresses first:

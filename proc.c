@@ -371,6 +371,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->ticks_left = RSDL_PROC_QUANTUM;
+  p->default_level = -1;  // indicate no default_level explicitly set
 
   release(&ptable.lock);
 
@@ -684,7 +685,8 @@ scheduler(void)
 
           // move proc to next available level in active set
           // if none, enqueue to original level in expired set
-          nq = find_available_queue(k+1, RSDL_STARTING_LEVEL);
+          int orig_level = (p->default_level == -1) ? RSDL_STARTING_LEVEL : p->default_level;
+          nq = find_available_queue(k+1, orig_level);
           // re-enqueue to same level but in active set, or below
           enqueue_proc(np, nq);
         }
@@ -692,7 +694,7 @@ scheduler(void)
         // If proc called exit, it already unqueued itself; no need to re-enqueue
         if (p->state != ZOMBIE) {
           // active process is the last process to be enqueued
-          nq = find_available_queue(k+1, RSDL_STARTING_LEVEL);
+          nq = find_available_queue(k+1, orig_level);
           enqueue_proc(p, nq);
         }
       } else {
@@ -718,7 +720,9 @@ scheduler(void)
           }
           // find vacant queue, starting from level nk as decided above
           // if no available level in active set, enqueue to original RSDL_STARTING_LEVEL in expired set
-          nq = find_available_queue(nk, RSDL_STARTING_LEVEL);
+
+          int orig_level = (p->default_level == -1) ? RSDL_STARTING_LEVEL : p->default_level;
+          nq = find_available_queue(nk, orig_level);
           if (is_expired_set(nq)) {
             // proc quantum refresh case 2: proc moved to expired set
             p->ticks_left = RSDL_PROC_QUANTUM;
@@ -749,8 +753,10 @@ scheduler(void)
           unqueue_proc(p, q);
 
           // re-enqueue to original level in active set
+          // IF default_level is set, start there instead
           // if no available level in active set, enqueue to original level in expired set
-          nq = find_available_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
+          nk = (p->default_level == -1) ? RSDL_STARTING_LEVEL : p->default_level;
+          nq = find_available_queue(nk, nk);
           enqueue_proc(p, nq);
         }
       }
