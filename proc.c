@@ -628,6 +628,7 @@ scheduler(void)
     acquire(&ptable.lock);
     int i, prev_idx, k, nk;
     int found = 0;
+    struct proc *np;
     struct level_queue *nq;
     for (k = 0; k < RSDL_LEVELS; ++k) {
       q = &ptable.active[k];
@@ -667,32 +668,69 @@ scheduler(void)
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
-      // proc has given up control to scheduler. Check if we need
-      // to replenish quantum or move to lower priority queue
-      if (p->ticks_left == 0) {
-        // proc used up quantum: enqueue to lower priority
-        p->ticks_left = RSDL_PROC_QUANTUM;
-        nk = k + 1;
-      } else {
-        // proc yielded with remaining quantum: re-enqueue to same level
-        nk = k;
-      }
+      // proc has given up control to scheduler
+      if (q->ticks_left == 0) {
+        // level-local quantum depleted, migrate all procs here to next available level
+        nq = find_available_queue(k+1, k);
+        while (q->numproc != 0) {
+          np = q->proc[0];
+          // moving to next level OR expired set, replenish quantum
+          np->ticks_left = RSDL_PROC_QUANTUM;
 
-      // only try to re-enqueue proc if it was not removed before
-      // e.g. when it calls exit() (state == ZOMBIE), it removes itself so no need to re-enqueue
-      if (q->numproc != 0 && p->state != ZOMBIE) {
-        prev_idx = unqueue_proc(p, q);
-        if (prev_idx == -1) {
-          panic("re-enqueue of proc failed");
+          unqueue_proc(np, q);
+          // Section 2.4: The active process should be enqueued last
+          if (np == p) {
+            continue;
+          }
+
+          // re-enqueue to same level but in active set, or below
+          // TODO: see comment in find_available_queue() about linux rsdl patch behavior
+          enqueue_proc(np, nq);
+
+          // If next level is full, find next available level
+          if (nq->numproc == NPROC) {
+            // TODO: make search for next level more efficient e.g start at level of nq
+            //       instead of original k+1. We keep simpler naive approach for now to avoid possible errors
+            nq = find_available_queue(k+1, k);
+          }
         }
-        // find vacant queue, starting from level nk as decided above
-        // if no available level in active set, enqueue to original RSDL_STARTING_LEVEL in expired set
-        nq = find_available_queue(nk, RSDL_STARTING_LEVEL);
-        if (is_expired_set(nq)) {
-          // proc quantum refresh case 2: proc moved to expired set
+
+        // If proc called exit, it already unqueued itself; no need to re-enqueue
+        if (p->state != ZOMBIE) {
+          // active process is the last process to be enqueued
+          nq = find_available_queue(k+1, k);
+          enqueue_proc(p, nq);
+        }
+      } else {
+        // NOTE: if local-level quantum was depleted, procs have already been
+        //       replenished and reprioritized, so we only do things below
+        //       when the level still has remaining quantum
+        // Check if we need to replenish quantum or move to lower priority queue
+        if (p->ticks_left == 0) {
+          // proc used up quantum: enqueue to lower priority
           p->ticks_left = RSDL_PROC_QUANTUM;
+          nk = k + 1;
+        } else {
+          // proc yielded with remaining quantum: re-enqueue to same level
+          nk = k;
         }
-        enqueue_proc(p, nq);
+
+        // only try to re-enqueue proc if it was not removed before
+        // e.g. when it calls exit() (state == ZOMBIE), it removes itself so no need to re-enqueue
+        if (q->numproc != 0 && p->state != ZOMBIE) {
+          prev_idx = unqueue_proc(p, q);
+          if (prev_idx == -1) {
+            panic("re-enqueue of proc failed");
+          }
+          // find vacant queue, starting from level nk as decided above
+          // if no available level in active set, enqueue to original RSDL_STARTING_LEVEL in expired set
+          nq = find_available_queue(nk, RSDL_STARTING_LEVEL);
+          if (is_expired_set(nq)) {
+            // proc quantum refresh case 2: proc moved to expired set
+            p->ticks_left = RSDL_PROC_QUANTUM;
+          }
+          enqueue_proc(p, nq);
+        }
       }
 
       // Process is done running for now.
