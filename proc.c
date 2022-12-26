@@ -301,7 +301,7 @@ next_level(int start, int use_expired)
 
   int k = start;
   for ( ; k < RSDL_LEVELS; ++k) {
-    if (set[k].numproc < NPROC) {
+    if (set[k].ticks_left > 0 && set[k].numproc < NPROC) {
       break;
     }
   }
@@ -326,7 +326,7 @@ next_expired_level(int start)
 }
 
 struct level_queue*
-find_vacant_queue(int active_start, int expired_start)
+find_available_queue(int active_start, int expired_start)
 {
   int level = next_active_level(active_start);
   if (level == -1) {  // no lower prio level available
@@ -433,7 +433,7 @@ userinit(void)
 
   p->state = RUNNABLE;
   // only enqueue here since we are sure that allocation is successful
-  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
+  struct level_queue *q = find_available_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
   enqueue_proc(p, q);
 
   release(&ptable.lock);
@@ -502,7 +502,7 @@ fork(void)
 
   np->state = RUNNABLE;
    // only enqueue here since we are sure that allocation is successful
-  struct level_queue *q = find_vacant_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
+  struct level_queue *q = find_available_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
   enqueue_proc(np, q);
 
   release(&ptable.lock);
@@ -631,6 +631,9 @@ scheduler(void)
     struct level_queue *nq;
     for (k = 0; k < RSDL_LEVELS; ++k) {
       q = &ptable.active[k];
+      if (q->ticks_left == 0)
+        continue;
+
       acquire(&q->lock);
       for (i = 0; i < q->numproc; ++i ) {
         p = q->proc[i];
@@ -682,9 +685,9 @@ scheduler(void)
         if (prev_idx == -1) {
           panic("re-enqueue of proc failed");
         }
-        // find vacant queue, starting from level nk as decided abovE
+        // find vacant queue, starting from level nk as decided above
         // if no available level in active set, enqueue to original RSDL_STARTING_LEVEL in expired set
-        nq = find_vacant_queue(nk, RSDL_STARTING_LEVEL);
+        nq = find_available_queue(nk, RSDL_STARTING_LEVEL);
         if (is_expired_set(nq)) {
           // proc quantum refresh case 2: proc moved to expired set
           p->ticks_left = RSDL_PROC_QUANTUM;
@@ -715,7 +718,7 @@ scheduler(void)
 
           // re-enqueue to original level in active set
           // if no available level in active set, enqueue to original level in expired set
-          nq = find_vacant_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
+          nq = find_available_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
           enqueue_proc(p, nq);
         }
       }
