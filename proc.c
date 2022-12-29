@@ -68,10 +68,12 @@ pinit(void)
     lq = &ptable.level[k];
     // NOTE: all queues will have same lock names
     initlock(&lq->lock, "level queue");
+    acquire(&lq->lock);
     lq->numproc = 0;
     for (int i = 0; i < NPROC; ++i){
       lq->proc[i] = NULL;
     }
+    release(&lq->lock);
   }
 
   ptable.active = &ptable.level[0];
@@ -507,6 +509,7 @@ scheduler(void)
     int found = 0;
     for (k = 0; k < RSDL_LEVELS; ++k) {
       q = &ptable.active[k];
+      acquire(&q->lock);
       for (i = 0; i < q->numproc; ++i ) {
         p = q->proc[i];
         if(p->state == RUNNABLE) {
@@ -514,6 +517,7 @@ scheduler(void)
           break;
         }
       }
+      release(&q->lock);
       if (found)
         break;
     }
@@ -533,11 +537,13 @@ scheduler(void)
           struct proc *pp;
 
           cprintf("%d|active|0(0)", ticks);
+          acquire(&q->lock);
           for(i = 0; i < q->numproc; ++i){
             pp = q->proc[i];
             if (pp->state == UNUSED) continue;
             else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
           }
+          release(&q->lock);
 
           cprintf("\n");
         }
