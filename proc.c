@@ -66,6 +66,8 @@ pinit(void)
   acquire(&ptable.lock);
   for (int k = 0; k < RSDL_LEVELS; ++k){
     lq = &ptable.level[k];
+    // NOTE: all queues will have same lock names
+    initlock(&lq->lock, "level queue");
     lq->numproc = 0;
     for (int i = 0; i < NPROC; ++i){
       lq->proc[i] = NULL;
