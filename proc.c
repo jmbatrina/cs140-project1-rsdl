@@ -546,23 +546,19 @@ scheduler(void)
 
       // proc has given up control to scheduler. Check if we need
       // to replenish quantum or move to lower priority queue
-      if (p->state != UNUSED && p->state != ZOMBIE) {
-        if (p->ticks_left == 0) {
-          // proc used up quantum: enqueue to lower priority
-          p->ticks_left = RSDL_PROC_QUANTUM;
-        } else {
-          // proc yielded with remaining quantum: re-enqueue to same level
-        }
-
-        // If proc is ready (i.e. not sleeping), re-enqueue it
-        if (p->state != SLEEPING) {
-          prev_idx = unqueue_proc(p, q);
-          if (prev_idx == -1) {
-            panic("re-enqueue of proc failed");
-          }
-          enqueue_proc(p, q);
-        }
+      if (p->ticks_left == 0) {
+        // proc used up quantum: enqueue to lower priority
+        p->ticks_left = RSDL_PROC_QUANTUM;
+      } else {
+        // proc yielded with remaining quantum: re-enqueue to same level
       }
+
+      // Phase 1: We only have 1 level, so re-enqueue to same level in either case
+      prev_idx = unqueue_proc(p, q);
+      if (prev_idx == -1) {
+        panic("re-enqueue of proc failed");
+      }
+      enqueue_proc(p, q);
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
