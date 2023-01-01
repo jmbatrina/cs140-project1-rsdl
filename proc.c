@@ -320,11 +320,12 @@ find_vacant_queue(int start)
 int
 is_active_set(struct level_queue *q)
 {
-  // NOTE: assumes that &ptable.level <= q < &ptable.level[2][RSDL_LEVELS]
-  if (ptable.active < ptable.expired)
-    return q < ptable.expired;
-  else
-    return q >= ptable.active;
+  // NOTE: assumes that &ptable.level[0][0] <= q < &ptable.level[1][RSDL_LEVELS]
+  //       since each level queue is created in the contiguous ptable.level
+  // q is in active set if its address is within ptable.active
+  // otherwise since q is inside ptable.level, then it must be in ptable.expired
+  return ptable.active <= q
+         && q < &ptable.active[RSDL_LEVELS];
 }
 
 int is_expired_set(struct level_queue *q)
