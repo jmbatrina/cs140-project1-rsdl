@@ -7,8 +7,6 @@
 #include "proc.h"
 #include "spinlock.h"
 
-#include "rsdl.h" // For RSDL scheduler parameters
-
 // Phase 1: Force RSDL_LEVELS to 1 and RSDL_STARTING_LEVEL to 0
 #undef RSDL_LEVELS
 #define RSDL_LEVELS 1
