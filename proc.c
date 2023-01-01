@@ -346,14 +346,7 @@ find_vacant_queue(int active_start, int expired_start)
   struct level_queue *set = ptable.active;
 
   if (level == -1) {  // no lower prio level available
-    // re-enqueue in expired set instead, starting at original queue
-    // TODO: Confirm if this new behavior is correct
-    //       The previous commit starts search in expired set
-    //       from RSDL_STARTING_LEVEL to mimic behavior in linux RSDL
-    //       patch (link below), but this is *different* to behavior in Project document
-    //       https://web.archive.org/web/20070317221320/http://ck.kolivas.org/patches/staircase-deadline/2.6.21-rc3-mm2-rsdl-0.29.patch
-    //       This new behavior has the consequence of procs only going down in priority without "boosting"
-    //       (once they get to bottom prio, they always stay there even between swaps)
+    // re-enqueue in expired set instead, starting at expired_set
     level = next_expired_level(expired_start);
     set = ptable.expired;
   }
@@ -703,8 +696,8 @@ scheduler(void)
           panic("re-enqueue of proc failed");
         }
         // find vacant queue, starting from level nk as decided abovE
-        // if no available level in active set, enqueue to expired set at original level (k)
-        nq = find_vacant_queue(nk, k);
+        // if no available level in active set, enqueue to original RSDL_STARTING_LEVEL in expired set
+        nq = find_vacant_queue(nk, RSDL_STARTING_LEVEL);
         if (is_expired_set(nq)) {
           // proc quantum refresh case 2: proc moved to expired set
           p->ticks_left = RSDL_PROC_QUANTUM;
@@ -731,9 +724,9 @@ scheduler(void)
           p->ticks_left = RSDL_PROC_QUANTUM;
           unqueue_proc(p, q);
 
-          // re-enqueue to same level but in active set, or below
-          // TODO: see comment in find_vacant_queue() about linux rsdl patch behavior
-          nq = find_vacant_queue(k, k);
+          // re-enqueue to original level in active set
+          // if no available level in active set, enqueue to original level in expired set
+          nq = find_vacant_queue(RSDL_STARTING_LEVEL, RSDL_STARTING_LEVEL);
           enqueue_proc(p, nq);
         }
       }
