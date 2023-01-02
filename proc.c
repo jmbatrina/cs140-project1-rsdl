@@ -560,11 +560,13 @@ scheduler(void)
       }
 
       // Phase 1: We only have 1 level, so re-enqueue to same level in either case
-      prev_idx = unqueue_proc(p, q);
-      if (prev_idx == -1) {
-        panic("re-enqueue of proc failed");
+      if (q->numproc != 0) {
+        prev_idx = unqueue_proc(p, q);
+        if (prev_idx == -1) {
+          panic("re-enqueue of proc failed");
+        }
+        enqueue_proc(p, q);
       }
-      enqueue_proc(p, q);
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
