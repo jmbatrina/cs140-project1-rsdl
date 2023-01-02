@@ -701,6 +701,8 @@ scheduler(void)
         q = &ptable.expired[k];
         while (q->numproc != 0) {
           p = q->proc[0];
+          // proc will be re-enqueued to new level, replenish quantum
+          p->ticks_left = RSDL_PROC_QUANTUM;
           unqueue_proc(p, q);
 
           nq = find_vacant_queue(RSDL_STARTING_LEVEL);
