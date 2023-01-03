@@ -343,21 +343,21 @@ struct level_queue*
 find_vacant_queue(int active_start, int expired_start)
 {
   int level = next_active_level(active_start);
-  struct level_queue *set = ptable.active;
-
   if (level == -1) {  // no lower prio level available
     // re-enqueue in expired set instead, starting at expired_set
     level = next_expired_level(expired_start);
-    set = ptable.expired;
+    if (level == -1) {
+      // NOTE: shouldn't happen normally
+      panic("No free level in expired and active set, too many procs");
+      return NULL;
+    }
+
+    // We reach here if we found available queue in expired set
+    return &ptable.expired[level];
   }
 
-  if (level == -1) {
-    // TODO: Verify how to handle case when all levels are filled
-    panic("No free level in expired and active set, too many procs");
-    return NULL;
-  }
-
-  return &set[level];
+  // We reach here if we found available queue in active set
+  return &ptable.active[level];
 }
 
 //PAGEBREAK: 32
