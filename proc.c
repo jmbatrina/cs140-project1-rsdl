@@ -510,7 +510,7 @@ scheduler(void)
       acquire(&q->lock);
       for (i = 0; i < q->numproc; ++i ) {
         p = q->proc[i];
-        if(p->state == RUNNABLE) {
+        if(p->state == RUNNABLE && p->ticks_left > 0) {
           found = 1;
           break;
         }
