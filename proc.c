@@ -520,6 +520,10 @@ scheduler(void)
         break;
     }
 
+    if (schedlog_active && ticks > schedlog_lasttick) {
+        schedlog_active = 0;
+    }
+
     if (found) {
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -528,23 +532,19 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
-      if (schedlog_active) {
-        if (ticks > schedlog_lasttick) {
-          schedlog_active = 0;
-        } else {
-          struct proc *pp;
+      if (schedlog_active && ticks <= schedlog_lasttick) {
+        struct proc *pp;
 
-          cprintf("%d|active|0(0)", ticks);
-          acquire(&q->lock);
-          for(i = 0; i < q->numproc; ++i){
-            pp = q->proc[i];
-            if (pp->state == UNUSED) continue;
-            else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
-          }
-          release(&q->lock);
-
-          cprintf("\n");
+        cprintf("%d|active|0(0)", ticks);
+        acquire(&q->lock);
+        for(i = 0; i < q->numproc; ++i){
+          pp = q->proc[i];
+          if (pp->state == UNUSED) continue;
+          else cprintf(",[%d]%s:%d(%d)", pp->pid, pp->name, pp->state, pp->ticks_left);
         }
+        release(&q->lock);
+
+        cprintf("\n");
       }
 
       swtch(&(c->scheduler), p->context);
