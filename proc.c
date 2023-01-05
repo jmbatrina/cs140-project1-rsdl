@@ -9,9 +9,6 @@
 
 #define NULL (void *) 0x0
 
-// TODO: check if we need to release ptable.lock before each (debug) panic
-// TODO: Add tests for en/unqueue (automated testcases????)
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -73,7 +70,6 @@ void print_schedlog(void) {
       cprintf("\n");
     }
   }
-  // TODO: should each "block" of schedlog info per tick be separated by a newline?
 }
 
 extern void forkret(void);
@@ -270,7 +266,6 @@ remove_proc_from_levels(struct proc *p)
   struct level_queue *q;
   int found = 0;
   // Naive implementation: use linear search on each level to find level
-  // TODO: More efficient implementation (keep current level as proc attribute, needs to be maintained when proc is re-enqueued)
   for (int s = 0; s < 2; ++s) {
     for (int k = 0; k < RSDL_LEVELS; ++k){
       q = &ptable.level[s][k];
@@ -294,7 +289,6 @@ remove_proc_from_levels(struct proc *p)
 int
 next_level(int start, int use_expired)
 {
-  // TODO: ptable.{active, expired} accessed but not modified. Do we need to acquire lock?
   const struct level_queue *set = (use_expired) ? ptable.expired : ptable.active;
   if (start < 0)
     return -1;

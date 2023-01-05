@@ -2,7 +2,6 @@
 
 // NOTE: each level is represented as an array with NPROC elements
 //       for simplicity (since the previous linke list approach had a lot of mysterious crashes)
-// TODO: switch to circular array representation so that dequeue of front (common case) is O(1)
 struct level_queue {
   struct spinlock lock;
   // must only be modified by enqueue_proc and unqueue_proc
