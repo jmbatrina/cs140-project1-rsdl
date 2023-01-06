@@ -699,8 +699,7 @@ scheduler(void)
             panic("re-enqueue of proc failed");
           }
           // find vacant queue, starting from level nk as decided above
-          // if no available level in active set, enqueue to original RSDL_STARTING_LEVEL in expired set
-
+          // if no available level in active set, enqueue to original level in expired set
           nq = find_available_queue(nk, p->default_level);
           if (is_expired_set(nq)) {
             // proc quantum refresh case 2: proc moved to expired set
@@ -732,7 +731,6 @@ scheduler(void)
           unqueue_proc(p, q);
 
           // re-enqueue to original level in active set
-          // IF default_level is set, start there instead
           // if no available level in active set, enqueue to original level in expired set
           nk = p->default_level;
           nq = find_available_queue(nk, nk);
