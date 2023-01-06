@@ -467,14 +467,12 @@ priofork(int default_level)
   struct proc *curproc = myproc();
 
   if (default_level >= RSDL_LEVELS) {
-    panic("prioallocproc: default_level too large");
+    panic("priofork: default_level too large");
     return -1;
   }
 
-  // explicitly require -1 to indicate no default_level
-  // explicitly set, use RSDL_STARTING_LEVEL
   if (default_level < -1) {
-    panic("prioallocproc: negative default_level != -1");
+    panic("prifork: negative default_level != -1");
     return -1;
   }
 
