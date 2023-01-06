@@ -366,13 +366,7 @@ fork(void)
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
-
-    // fork failed, remove forked embryo process from level/queue
-    // Phase 1: ALL procs are in first level, so we always remove procs from there
-    struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
-    unqueue_proc(np, q);
     np->state = UNUSED;
-
     return -1;
   }
   np->sz = curproc->sz;
