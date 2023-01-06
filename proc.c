@@ -670,9 +670,7 @@ scheduler(void)
 
       // proc has given up control to scheduler
       if (q->ticks_left == 0) {
-        // level-local quantum depleted, migrate all procs here to next available level
-        // if none, enqueue to original level in active set
-        nq = find_available_queue(k+1, RSDL_STARTING_LEVEL);
+        // level-local quantum depleted, migrate all procs
         while (q->numproc != 0) {
           np = q->proc[0];
           // moving to next level OR expired set, replenish quantum
@@ -684,15 +682,11 @@ scheduler(void)
             continue;
           }
 
+          // move proc to next available level in active set
+          // if none, enqueue to original level in expired set
+          nq = find_available_queue(k+1, RSDL_STARTING_LEVEL);
           // re-enqueue to same level but in active set, or below
           enqueue_proc(np, nq);
-
-          // If next level is full, find next available level
-          if (nq->numproc == NPROC) {
-            // TODO: make search for next level more efficient e.g start at level of nq
-            //       instead of original k+1. We keep simpler naive approach for now to avoid possible errors
-            nq = find_available_queue(k+1, RSDL_STARTING_LEVEL);
-          }
         }
 
         // If proc called exit, it already unqueued itself; no need to re-enqueue
