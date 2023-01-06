@@ -267,11 +267,6 @@ found:
   }
   sp = p->kstack + KSTACKSIZE;
 
-  // only enqueue here since we are sure that allocation is successful
-  // Phase 1: always enqueue in our single active level
-  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
-  enqueue_proc(p, q);
-
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
@@ -323,6 +318,10 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  // only enqueue here since we are sure that allocation is successful
+  // Phase 1: always enqueue in our single active level
+  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+  enqueue_proc(p, q);
 
   release(&ptable.lock);
 }
@@ -395,6 +394,10 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+   // only enqueue here since we are sure that allocation is successful
+  // Phase 1: always enqueue in our single active level
+  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+  enqueue_proc(np, q);
 
   release(&ptable.lock);
 
