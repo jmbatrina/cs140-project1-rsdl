@@ -111,7 +111,7 @@ trap(struct trapframe *tf)
 
     int proc_ticks = --myproc()->ticks_left;
     int level_ticks = --mycpu()->queue->ticks_left;
-    if (proc_ticks == 0 || level_ticks == 0){
+    if (proc_ticks <= 0 || level_ticks <= 0){
       yield();
     }
   }

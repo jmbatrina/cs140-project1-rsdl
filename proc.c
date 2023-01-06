@@ -614,7 +614,7 @@ scheduler(void)
     struct level_queue *nq;
     for (k = 0; k < RSDL_LEVELS; ++k) {
       q = &ptable.active[k];
-      if (q->ticks_left == 0)
+      if (q->ticks_left <= 0)
         continue;
 
       acquire(&q->lock);
@@ -651,9 +651,9 @@ scheduler(void)
       switchkvm();
 
       // proc has given up control to scheduler
-      if (q->ticks_left == 0) {
+      if (q->ticks_left <= 0) {
         // level-local quantum depleted, migrate all procs
-        while (q->numproc != 0) {
+        while (q->numproc > 0) {
           np = q->proc[0];
           // moving to next level OR expired set, replenish quantum
           np->ticks_left = RSDL_PROC_QUANTUM;
@@ -682,7 +682,7 @@ scheduler(void)
         //       replenished and reprioritized, so we only do things below
         //       when the level still has remaining quantum
         // Check if we need to replenish quantum or move to lower priority queue
-        if (p->ticks_left == 0) {
+        if (p->ticks_left <= 0) {
           // proc used up quantum: enqueue to lower priority
           p->ticks_left = RSDL_PROC_QUANTUM;
           nk = k + 1;
@@ -693,7 +693,7 @@ scheduler(void)
 
         // only try to re-enqueue proc if it was not removed before
         // e.g. when it calls exit() (state == ZOMBIE), it removes itself so no need to re-enqueue
-        if (q->numproc != 0 && p->state != ZOMBIE) {
+        if (q->numproc > 0 && p->state != ZOMBIE) {
           prev_idx = unqueue_proc(p, q);
           if (prev_idx == -1) {
             panic("re-enqueue of proc failed");
@@ -725,7 +725,7 @@ scheduler(void)
       for (k = 0; k < RSDL_LEVELS; ++k) {
         q = &ptable.expired[k];
         q->ticks_left = RSDL_LEVEL_QUANTUM; // replenish level-local quantum
-        while (q->numproc != 0) {
+        while (q->numproc > 0) {
           p = q->proc[0];
           // proc will be re-enqueued to new level, replenish quantum
           p->ticks_left = RSDL_PROC_QUANTUM;
