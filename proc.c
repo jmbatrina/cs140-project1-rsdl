@@ -159,7 +159,7 @@ enqueue_proc(struct proc *p, struct level_queue *q)
 // NOTE: *un*queue intentional since proc in middle of queue can be removed
 // returns index of proc in current level
 int
-unqueue_proc(struct proc *p, struct level_queue *q)
+unqueue_proc_full(struct proc *p, struct level_queue *q, int isTry)
 {
   if (p == NULL) {
     panic("unqueue of NULL proc");
@@ -172,7 +172,9 @@ unqueue_proc(struct proc *p, struct level_queue *q)
   }
 
   if (q->numproc == 0) {
-    panic("unqueue on empty level");
+    if (!isTry) {
+      panic("unqueue on empty level");
+    }
     return -1;
   }
 
@@ -208,12 +210,26 @@ unqueue_proc(struct proc *p, struct level_queue *q)
   release(&q->lock);
 
   if (!found) {
-    panic("unqueue of node not belonging to level");
+    if (!isTry) {
+      panic("unqueue of node not belonging to level");
+    }
     return -1;
   }
 
   // we only reach here if unqueue is successful
   return i;
+}
+
+int
+unqueue_proc(struct proc *p, struct level_queue *q)
+{
+  return unqueue_proc_full(p, q, 0);
+}
+
+int
+try_unqueue_proc(struct proc *p, struct level_queue *q)
+{
+  return unqueue_proc_full(p, q, 1);
 }
 
 //PAGEBREAK: 32
@@ -425,6 +441,11 @@ exit(void)
     }
   }
 
+  // Process exited, remove from its queue
+  // Phase 1: ALL procs are in first level, so we always remove procs from there
+  struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
+  unqueue_proc(curproc, q);
+
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
   sched();
@@ -459,11 +480,6 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
-
-        // Process exited, remove from its queue
-        // Phase 1: ALL procs are in first level, so we always remove procs from there
-        struct level_queue *q = &ptable.active[RSDL_STARTING_LEVEL];
-        unqueue_proc(p, q);
         release(&ptable.lock);
 
         return pid;
@@ -560,7 +576,9 @@ scheduler(void)
       }
 
       // Phase 1: We only have 1 level, so re-enqueue to same level in either case
-      if (q->numproc != 0) {
+      // only try to re-enqueue proc if it was not removed before
+      // e.g. when it calls exit() (state == ZOMBIE), it removes itself so no need to re-enqueue
+      if (q->numproc != 0 && p->state != ZOMBIE) {
         prev_idx = unqueue_proc(p, q);
         if (prev_idx == -1) {
           panic("re-enqueue of proc failed");
