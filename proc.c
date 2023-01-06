@@ -153,28 +153,12 @@ enqueue_proc(struct proc *p, struct level_queue *q)
     return;
   }
 
-  if (p->state == UNUSED) {
-    panic("enqueue of UNUSED proc");
-    return;
-  }
-
   if (q == NULL) {
     panic("enqueue in NULL queue");
     return;
   }
 
-  if (q->numproc < 0) {
-    panic("unqueue on queue with NEGATIVE numproc");
-    return;
-  }
-
-  if (q->numproc > NPROC) {
-    panic("unqueue on queue with numproc > NPROC");
-    return;
-  }
-
   acquire(&q->lock);
-  // for debug, see below
   if (q->numproc >= NPROC) {
     panic("enqueue in full level");
   } else {
@@ -189,11 +173,6 @@ enqueue_proc(struct proc *p, struct level_queue *q)
 int
 unqueue_proc_full(struct proc *p, struct level_queue *q, int isTry)
 {
-  if (p == NULL) {
-    panic("unqueue of NULL proc");
-    return -1;
-  }
-
   if (q == NULL) {
     panic("unqueue in NULL queue");
     return -1;
@@ -203,16 +182,6 @@ unqueue_proc_full(struct proc *p, struct level_queue *q, int isTry)
     if (!isTry) {
       panic("unqueue on empty level");
     }
-    return -1;
-  }
-
-  if (q->numproc < 0) {
-    panic("unqueue on queue with NEGATIVE numproc");
-    return -1;
-  }
-
-  if (q->numproc > NPROC) {
-    panic("unqueue on queue with numproc > NPROC");
     return -1;
   }
 
@@ -279,7 +248,6 @@ remove_proc_from_levels(struct proc *p)
   }
 
   if (!found) {
-    panic("Proc not found in any level");
     return -1;
   }
 
@@ -466,13 +434,13 @@ priofork(int default_level)
   struct proc *np;
   struct proc *curproc = myproc();
 
+  // default_level too large
   if (default_level >= RSDL_LEVELS) {
-    panic("priofork: default_level too large");
     return -1;
   }
 
-  if (default_level < -1) {
-    panic("prifork: negative default_level != -1");
+  // default_level negative
+  if (default_level < 0) {
     return -1;
   }
 
