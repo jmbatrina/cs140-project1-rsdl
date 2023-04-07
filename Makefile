@@ -192,17 +192,13 @@ UPROGS=\
         _shutdown\
 		_test_fork\
 		_test_fork2\
-		_test_hello\
 		_test_loop\
         _test_loop2\
         _test_loop3\
 		_test_priofork\
 		_test_priofork2\
 		_test_priofork3\
-		_test_priofork4\
-		_test_procsyscalls\
-		_test_project\
-		_test_psyscall
+		_test_priofork4
 
 
 fs.img: mkfs README $(UPROGS)
