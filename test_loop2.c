@@ -4,7 +4,8 @@
 int main() {
     int dummy = 0;
 
-    if (priofork(4) == 0) {
+    schedlog(5000);
+    if (priofork(0) == 0) {
         for (unsigned int i = 0; i < 4e8; i++) {
             dummy += i;
         }
