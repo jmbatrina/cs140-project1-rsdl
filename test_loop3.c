@@ -2,8 +2,9 @@
 #include "user.h"
 
 int main() {
-    int dummy = 0;
+    schedlog(5000); // 5000 is arbitrary, enough for running test program.
 
+    int dummy = 0;
     if (priofork(4) == 0) {
         for (unsigned int i = 0; i < 4e8; i++) {
             dummy += i;
