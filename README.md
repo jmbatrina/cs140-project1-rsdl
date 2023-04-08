@@ -1,4 +1,4 @@
-# cs140-project1-rsdl
+# **CS 140 Project 1: xv6 Rotating Staircase Deadline Scheduler**
 
 xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
 Version 6 (v6).  xv6 loosely follows the structure and style of v6,
