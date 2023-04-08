@@ -5,7 +5,7 @@
 #define N 5
 
 int main() {
-    schedlog(10000);
+    schedlog(10000);    // 10000 is arbitrary for this long-running test program.
 
     printf(1, "rsdl.h: levels=%d, starting_level=%d, proc_quantum=%d, level_quantum=%d\n",
         RSDL_LEVELS, RSDL_STARTING_LEVEL, RSDL_PROC_QUANTUM, RSDL_LEVEL_QUANTUM);
