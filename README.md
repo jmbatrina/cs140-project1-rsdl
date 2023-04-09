@@ -57,8 +57,8 @@ works in both its original and modified forms.
 It is suggested for you to only watch the video documentation or skim through the written documentation.
 
 However, if you really wish to verify the results on your end, the following would be needed.
-- Windows 7 or higher. Otherwise, skip the next bullet if you already have a Linux environment.
-- Latest version of [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (Recommended). Alternative would be to set up a Linux environment in a Virtual Machine, but lightweight testing can be accomplished through WSL.
+- Windows 7 or higher. Skip the next bullet if you already have a Linux environment.
+- Latest version of [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (recommended). Alternative would be to set up a Linux environment in a Virtual Machine, but lightweight testing can be accomplished through WSL.
 - Upon setting-up WSL, launch WSL by entering `wsl` in a terminal, then install prerequisites by running the following:
 ```shell
 sudo apt update
@@ -73,7 +73,7 @@ echo "set auto-load safe-path /" >> ~/.gdbinit
 For running tests, please directly proceed to the next section.
 
 ## **Running Tests**
-Test programs were already provided for your convenience. These test programs utilize the system call `schedlog(n)` that causes all processes in each level of the sets to be printed out during program execution. But if you wish, you may write your own test programs that verifies if the RSDL scheduler behaves as expected. You may also edit the scheduler's **parameters** in `rsdl.h`.
+Test programs are already provided for your convenience. These test programs utilize the system call `schedlog(n)` that causes all processes in each level of the sets to be printed out during program execution. But if you wish, you may write your own test programs that verifies if the RSDL scheduler behaves as expected. You may also edit the scheduler's **parameters** in `rsdl.h`.
 
 To make use of the provided test programs:
 1. Launch `wsl` on a terminal.
