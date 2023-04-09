@@ -39,7 +39,7 @@ Video Documentation can be found [here](https://drive.google.com/file/d/1tz89OH9
 I teamed with **Jan Paul Batrina** and **Angelo Convento** for this project.
 My role is mainly quality assurance with focus on optimization and debugging.
 It was my job to paintstakingly test the kernel for stability and fulfillment of requirements.
-Towards this, I wrote a lot of test programs, combed through many output logs, and diligently engaged
+Towards this, I wrote a lot of test programs, brought up edge cases and caveats, combed through many output logs, and diligently engaged
 in communication with my teammates from suggestions to documentation.
 Of course, to proceed with this, I had to have an in-depth understanding of how the xv6 kernel
 works in both its original and modified forms.
@@ -61,16 +61,19 @@ pip3 install gdbgui
 
 echo "set auto-load safe-path /" >> ~/.gdbinit
 ```
+For running tests, please directly proceed to the next section.
 
-## **Running Simulations**
-This guide will only focus on the Vivado platform. Analogous steps can be expected in EDA Playground.
-1. Start Vivado. Complete the set-up and account registration process.
-2. Once Vivado is started, open an existing workbench through File. Select the following directory in your clone of this repository: `CS21_Project2_v2\`. This step will load all Design and Simulation sources to your Vivado session.
-3. Once the workbench has loaded, you may begin testing the added instructions. Select the appropriate testbench for the desired instruction that you will test in the Sources pane, right click it, and select "Move to top".
-4. Reorder the hiearchy of files by refreshing the Sources pane.
-5. Open `memfile.mem` in the Vivado Sources pane, and its contents will appear in a tab the Vivado Editor panel.
-6. Copy the contents of the desired instruction test from `Instruction Tests\` to `memfile.mem` (overwrite it).
-7. Finally, hit Simulate from the Menu Bar. This will produce a waveform diagram that you may examine for any errors (as we did in the documentation). You may also watch the TCL Console panel for any issues (the testbench is very verbose).
+## **Running Tests**
+Test programs were already provided for your convenience. These test programs utilize the system call `schedlog(n)` that causes all processes in each level of the sets to be printed out during program execution. But if you wish, you may write your own test programs that verifies if the RSDL scheduler behaves as expected. You may also edit the scheduler's **parameters** in `rsdl.h`.
+
+To make use of the provided test programs:
+1. Launch `wsl` on a terminal.
+2. `cd` to the root directory of this project.
+3. Enter `make clean`, then `make qemu-nox`. This will launch the RSDL xv6.
+4. Run any of the following test programs (see files named `test_*`). For example, to run `test_priofork.c`, enter `test_priofork`. To stop the test program, press `CTRL+A` then press `x`. This exits xv6.
+5. Verify the results by checking the output in the terminal. As Jan Paul also taught me, it is useful to do `make qemu nox | tee test.out` to get all  
+
+Note on `priofork(k)`: this is a system call that is very similar to `fork()` but ignores the `RSDL_STARTING_LEVEL` parameter, replacing it with `k` instead. That is, a process created using `priofork(k)` will be enqueued in level `k` of the Active set. 
 
 ## **Sample I/O**
 For testing, say, the sll instruction, you will open `Instruction Tests\sll memfile.txt` and copy its machine code contents to your `memfile.mem` (also shown below).
