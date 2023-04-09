@@ -11,9 +11,11 @@ is swapped for the Expired set which is then made the new Active set (think **ro
 
 The Active and Expired sets both have `N` FIFO levels (or queues) in them (think **staircase**).
 Moreover, each process is given a limited quanta. Upon consuming all of its quantum, the process (running in the Active set) moves
-down a level (to level `N-1`) where it gets enqueued and its quantum is replenished. A process that is selected to run in a set's particular
-level is then said to be dequeued from that level. Note that a process begins its life in a predefined level (see `rsdl.h`).
-consuming all of its quantum, the process is moved to the Expired set where it will wait for its next turn.
+down a level (to level `N-1`) where it gets enqueued and its quantum is replenished (think **deadline**).
+A process that is selected to run in a set's particular level is then said to be dequeued from that level.
+Note that a process begins its life in a predefined level (see `rsdl.h`).
+
+A process that expires at the bottommost level is then moved to the Expired set where it will wait for its next turn.
 There are multiple *caveats* here, such as on what happens when a process consumes its entire quantum as it exits (zombie!). 
 Please read the Project Specs for thorough awareness of these caveats. A high-level view of RSDL is shown below:
 
