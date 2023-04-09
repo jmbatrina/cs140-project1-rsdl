@@ -31,9 +31,9 @@ A high-level view of RSDL is shown below:
 ![rsdl.png](extras\rsdl.png)
 
 ### **Quick Links**
-Full project specifications are in `extras\CS140_Project1_Specs.pdf`. Please email me for access.
-Project Documentation can be found in `extras\cs140project1.pdf`.
-Video Documentation can be found [here](https://drive.google.com/file/d/1tz89OH9HZINDWIyBGx8JMmch4MLltlsT/view?usp=share_link).
+- Full project specifications are in `extras\CS140_Project1_Specs.pdf`. Please email me for access.
+- Project Documentation can be found in `extras\cs140project1.pdf`.
+- Video Documentation can be found [here](https://drive.google.com/file/d/1tz89OH9HZINDWIyBGx8JMmch4MLltlsT/view?usp=share_link).
 
 ## **Collaboration**
 I teamed with **Jan Paul Batrina** and **Angelo Convento** for this project.
