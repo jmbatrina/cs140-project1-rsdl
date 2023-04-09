@@ -1,14 +1,12 @@
 # **CS 140 Project 1: xv6 Rotating Staircase Deadline Scheduler**
 
-
-
 ## **Description**
-For this project, we had to extend the MIPS 32-bit Single Cycle Processor (SCP) (Harris & Harris, 2013) instruction set (please see `CS21_Project2_Specs.pdf` for full specifications, email me for access).
+For this Operating Systems project, we had to augment the xv6 round-robin scheduler with an 
 
 My role for this project is mainly quality assurance with focus on optimization and debugging.
 It was my job to paintstakingly test the kernel for stability and fulfillment of requirements.
 Towards this, I wrote a lot of test programs, combed through a lot of output logs, and engaged
-in meticulous documentation and methodical communication with my teammates.
+in diligent documentation and communication with my teammates to bring up suggestions for improvement.
 Of course, to proceed with this, I had to have an in-depth understanding of how the xv6 kernel
 works in both its original and modified forms.
 
