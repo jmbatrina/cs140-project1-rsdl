@@ -1,3 +1,4 @@
+# Ignore generated files
 *~
 _*
 *.o
@@ -14,3 +15,6 @@ kernel
 kernelmemfs
 mkfs
 .gdbinit
+*.bkp
+*.dtmp
+*.pdf
