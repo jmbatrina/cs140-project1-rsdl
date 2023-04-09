@@ -12,17 +12,14 @@ done primarily to these root files (ordered by significance):
 The RSDL scheduler uses an Active set and an Expired set alongside the process table as scheduling heuristics
 to help decide which process to run next in a fairer and more heuristic manner.
 
-term
-: ds
-
 The Active and Expired sets both have `N` FIFO levels (or queues) in them (think **staircase**).
-Each level is given a limited level-local quantum (runtime in ticks) that is decremented as a process in that level runs.
-Note that this is more relevant for the Active set. Once a level uses up its entire quantum, all processes in it are ejected and enqueued to
-the level below it (level `N-1`) in the exact same order. And once all levels in the Active set uses up their entire quantum, the Active set
+Each level is given a limited level-local quantum (runtime in ticks) that is decremented as a process in that Active set level runs.
+Once a level uses up its entire quantum, all processes in it are ejected and enqueued to
+the level below it (level `N-1`) in the exact same order. And once **all** levels in the Active set uses up their entire quantum, the Active set
 is swapped for the Expired set which is then made the new Active set (think **rotation**) with replenished level-local quanta.
 
 Moreover, each process is given a limited process-local quanta.
-Upon using up its entire quantum, the process (running in the Active set) moves
+Upon using up its entire quantum, the active process moves
 down a level (to level `N-1`) where it gets enqueued and its quantum is replenished (think **deadline**).
 A process that is selected to run in a set's particular level is then said to be dequeued from that level.
 Note that a process begins its life in a predefined level (see `rsdl.h`).
