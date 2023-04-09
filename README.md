@@ -36,7 +36,8 @@ A high-level view of RSDL is shown below. Process Control Blocks (PCBs or proces
 The “process” entries stored in the level queues in the `ptable.active` and the `ptable.expired` sets are
 essentially just pointers to their corresponding PCBs in `ptable.proc`, and it is on these sets that RSDL
 selects for processes to schedule.
-![rsdl.png](extras/rsdl.png)
+
+![rsdl.png](extras/rsdl_2.png)
 
 ### **Quick Links**
 - Full project specifications are in `extras\CS140_Project1_Specs.pdf`. Please email me for access.
