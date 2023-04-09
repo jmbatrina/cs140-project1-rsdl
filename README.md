@@ -2,7 +2,7 @@
 
 ## **Description**
 For this collaborative Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
-Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle Virtual Box using CS 140's prebuilt Ubuntu distro.
+Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle Virtual Box using CS 140's prebuilt Ubuntu appliance.
 
 The RSDL scheduler uses an Active set and an Expired set alongside the process table as scheduling heuristics
 to help decide which process to run next in a more fair and heuristic manner.
@@ -49,7 +49,8 @@ It is suggested for you to only watch the video documentation or skim through th
 
 However, if you really wish to verify the results on your end, the following would be needed.
 - Windows 7 or higher
-- Latest version of WSL. Note that this project was done 
+- Latest version of [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (Recommended). Alternative would be to set-up a Linux distro in Virtual Box, but lightweight testing can be accomplished through WSL.
+- 
 
 ## **Running Simulations**
 This guide will only focus on the Vivado platform. Analogous steps can be expected in EDA Playground.
