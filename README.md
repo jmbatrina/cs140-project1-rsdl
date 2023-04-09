@@ -4,7 +4,7 @@
 For this collaborative Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
 Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle Virtual Box using CS 140's prebuilt Ubuntu distro.
 
-The RSDL uses an Active set and an Expired set alongside the process table as scheduling heuristics
+The RSDL scheduler uses an Active set and an Expired set alongside the process table as scheduling heuristics
 to help decide which process to run next in a more fair and heuristic manner.
 
 The Active and Expired sets both have `N` FIFO levels (or queues) in them (think **staircase**).
