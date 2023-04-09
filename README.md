@@ -28,7 +28,7 @@ There are *multiple caveats* here, such as on:
 These are all answered in the Project Specs, so you may want to read it for thorough awareness of these caveats.
 
 A high-level view of RSDL is shown below:
-
+![rsdl.png]()
 
 Is defined in `rsdl.h`.
 A final view of the active and expired sets is
