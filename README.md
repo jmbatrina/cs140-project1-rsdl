@@ -70,7 +70,7 @@ pip3 install gdbgui
 
 echo "set auto-load safe-path /" >> ~/.gdbinit
 ```
-For running tests, please directly proceed to the next section.
+For running tests, please proceed directly to the next section.
 
 ## **Running Tests**
 Test programs are already provided for your convenience. These test programs utilize the system call `schedlog(n)` that causes all processes in each level of the sets to be printed out during program execution. But if you wish, you may write your own test programs that verifies if the RSDL scheduler behaves as expected. You may also edit the scheduler's **parameters** in `rsdl.h`.
