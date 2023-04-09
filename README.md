@@ -51,7 +51,7 @@ However, if you really wish to verify the results on your end, the following wou
 - Windows 7 or higher. (Skip the next bullet if you already have a Linux env.)
 - Latest version of [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (Recommended). Alternative would be to set up a Linux environment in a Virtual Machine, but lightweight testing can be accomplished through WSL.
 - Upon setting-up WSL, launch WSL entering `wsl` in a terminal, then install prerequisites by running the following:
-```
+```shell
 sudo apt update
 
 sudo apt install -y build-essential qemu-system-x86 gdb python3-pip
