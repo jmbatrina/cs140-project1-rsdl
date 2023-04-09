@@ -30,7 +30,7 @@ These are all answered in the Project Specs, so you may want to read it for thor
 A high-level view of RSDL is shown below:
 ![rsdl.png](extras\rsdl.png)
 
-Full project specifications are in `extras/CS140_Project1_Specs.pdf`.
+Full project specifications are in `extras\CS140_Project1_Specs.pdf`.
 
 My role for this project is mainly quality assurance with focus on optimization and debugging.
 It was my job to paintstakingly test the kernel for stability and fulfillment of requirements.
