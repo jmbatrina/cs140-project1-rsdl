@@ -45,7 +45,7 @@ Of course, to proceed with this, I had to have an in-depth understanding of how 
 works in both its original and modified forms.
 
 ## **Requirements**
-It is suggested for you to only watch the video documentation or skim through the written documentation due to the project's tediousness. Design, simulation, and testbench files from the workbench (`CS21_Project2_v2\`) were also fetched for your quick reference. You may browse them in the directories `Design Sources\`, `Instruction Tests\` & `Simulation Sources\`, and `Testbenches\` respectively.
+It is suggested for you to only watch the video documentation or skim through the written documentation. 
 
 However, if you really wish to verify the results on your end, the following would be needed.
 - Windows 10 or higher
