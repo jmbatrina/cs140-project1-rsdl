@@ -8,18 +8,26 @@ The RSDL uses an Active set and an Expired set alongside the process table as sc
 to help decide which process to run next in a more fair and heuristic manner.
 
 The Active and Expired sets both have `N` FIFO levels (or queues) in them (think **staircase**).
-The Active set is given a limited quantum (runtime in ticks), and upon consuming its entire quantum,
-is swapped for the Expired set which is then made the new Active set (think **rotation**).
+Each level is given a limited level-local quantum (runtime in ticks) that is decremented as a process in that level runs.
+Note that this is more relevant for the Active set. Once a level uses up its entire quantum, all processes in it are ejected and enqueued to
+the level below it (level `N-1`) in the exact same order. And once all levels in the Active set uses up their entire quantum, the Active set
+is swapped for the Expired set which is then made the new Active set (think **rotation**) with replenished level-local quanta.
 
-Moreover, each process is given a limited quanta. Upon consuming all of its quantum, the process (running in the Active set) moves
+Moreover, each process is given a limited process-local quanta.
+Upon using up its entire quantum, the process (running in the Active set) moves
 down a level (to level `N-1`) where it gets enqueued and its quantum is replenished (think **deadline**).
 A process that is selected to run in a set's particular level is then said to be dequeued from that level.
 Note that a process begins its life in a predefined level (see `rsdl.h`).
 
 A process that expires at the bottommost level is then moved to the Expired set where it will wait for its next turn.
-There are multiple *caveats* here, such as on what happens when a process consumes its entire quantum as it exits (zombie!)
-or on what happens when the Active set runs out of processes to run but still has nonzero level-local quanta.
-Please read the Project Specs for thorough awareness of these caveats. A high-level view of RSDL is shown below:
+There are *multiple caveats* here, such as on:
+- What happens when a process consumes its entire quantum as it exits (zombie!)?
+- What happens when the Active set runs out of processes to run but still has nonzero level-local quanta?
+- What happens when a process expires but all the levels below it has no more level-local quanta?
+
+These are all answered in the Project Specs, so you may want to read it for thorough awareness of these caveats.
+
+A high-level view of RSDL is shown below:
 
 Is defined in `rsdl.h`.
 A final view of the active and expired sets is
