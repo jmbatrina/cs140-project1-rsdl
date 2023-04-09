@@ -1,7 +1,7 @@
 # **CS 140 Project 1: xv6 Rotating Staircase Deadline Scheduler**
 
 ## **Description**
-For this Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
+For this collaborative Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
 Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used are C and x86 assembly. 
 
 The RSDL uses an Active set and an Expired set alongside the process table as scheduling heuristics
@@ -30,8 +30,12 @@ These are all answered in the Project Specs, so you may want to read it for thor
 A high-level view of RSDL is shown below:
 ![rsdl.png](extras\rsdl.png)
 
+### **Quick Links**
 Full project specifications are in `extras\CS140_Project1_Specs.pdf`. Please email me for access.
+Project Documentation can be found in `extras\cs140project1.pdf`.
+Video Documentation can be found [here](https://drive.google.com/file/d/1tz89OH9HZINDWIyBGx8JMmch4MLltlsT/view?usp=share_link).
 
+## **Collaboration**
 I teamed with **Jan Paul Batrina** and **Angelo Convento** for this project.
 My role is mainly quality assurance with focus on optimization and debugging.
 It was my job to paintstakingly test the kernel for stability and fulfillment of requirements.
@@ -39,16 +43,6 @@ Towards this, I wrote a lot of test programs, combed through many output logs, a
 in communication with my teammates from suggestions to documentation.
 Of course, to proceed with this, I had to have an in-depth understanding of how the xv6 kernel
 works in both its original and modified forms.
-
-Our technical documentation skills were also sharpened by this project, one that required *line-by-line* explanation of code. Discussed in the documentation *per added instruction* are:
-* HDL edits
-* Testbench for simulations. 
-* Test code (in assembly and in machine code) for verifying if the extended instruction set is working.
-* Demonstration that the processor can now successfully execute the instruction required.
-
-Extreme care was also taken to maintain the baseline integrity of the single cycle MIPS processor. That is, we extended the capability of the CPU *without breaking anything* in the process. The integrity checks are the testbenches `Simulation Sources\testbench.sv` with machine code `Simulation Sources\testbench.txt` and `Simulation Sources\testbench_2.sv` with machine code `Simulation Sources\testbench_2.txt`. The instruction memory component were also tested using the `imem_testbench`.
-
-Link to Video Documentation: https://drive.google.com/file/d/1N0l3GV2r9BShghN13NfjL3-9g5s0T68J/view?usp=sharing
 
 ## **Schematics**
 Before the modifications, the SCP is only capable of handling R-type, lw, sw, and beq instructions, with the following schematic diagram (Harris & Harris, 2013):
