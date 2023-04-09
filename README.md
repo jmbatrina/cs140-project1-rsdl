@@ -2,7 +2,7 @@
 
 ## **Description**
 For this collaborative Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
-Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle Virtual Box using CS 140's prebuilt Ubuntu appliance.
+Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle VirtualBox using CS 140's prebuilt Ubuntu appliance.
 
 The RSDL scheduler uses an Active set and an Expired set alongside the process table as scheduling heuristics
 to help decide which process to run next in a more fair and heuristic manner.
@@ -45,12 +45,22 @@ Of course, to proceed with this, I had to have an in-depth understanding of how 
 works in both its original and modified forms.
 
 ## **Requirements**
-It is suggested for you to only watch the video documentation or skim through the written documentation. 
+It is suggested for you to only watch the video documentation or skim through the written documentation.
 
 However, if you really wish to verify the results on your end, the following would be needed.
-- Windows 7 or higher
-- Latest version of [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (Recommended). Alternative would be to set-up a Linux distro in Virtual Box, but lightweight testing can be accomplished through WSL.
-- 
+- Windows 7 or higher. (Skip the next bullet if you already have a Linux env.)
+- Latest version of [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (Recommended). Alternative would be to set up a Linux environment in a Virtual Machine, but lightweight testing can be accomplished through WSL.
+- Upon setting-up WSL, launch WSL entering `wsl` in a terminal, then install prerequisites by running the following:
+```
+sudo apt update
+
+sudo apt install -y build-essential qemu-system-x86 gdb python3-pip
+python3-testresources git
+
+pip3 install gdbgui
+
+echo "set auto-load safe-path /" >> ~/.gdbinit
+```
 
 ## **Running Simulations**
 This guide will only focus on the Vivado platform. Analogous steps can be expected in EDA Playground.
