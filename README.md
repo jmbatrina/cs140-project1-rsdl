@@ -1,7 +1,18 @@
 # **CS 140 Project 1: xv6 Rotating Staircase Deadline Scheduler**
 
 ## **Description**
-For this Operating Systems project, we had to augment the xv6 round-robin scheduler with an 
+For this Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
+Con Kolivas' Rotating Staircase Deadline scheduler (RSDL). The RSDL uses an Active set and an Expired set,
+structures separate from the process table, to help decide which process to run next.
+The Active set is given a limited quantum (runtime in ticks), and upon consuming its entire quantum,
+is swapped for the Expired set which is then made the new Active set. Each process is also given a limited quanta. Upon
+consuming all of its quantum, the process is moved to the Expired set where it will wait for its next turn.
+There are multiple *caveats* here, such as on what happens when a process consumes its entire quantum as it exits. 
+Please read the Project Specs for thorough awareness of these caveats. A high-level view of RSDL is shown below:
+
+
+Is defined in `rsdl.h`.
+A final view of the active and expired sets is
 
 My role for this project is mainly quality assurance with focus on optimization and debugging.
 It was my job to paintstakingly test the kernel for stability and fulfillment of requirements.
