@@ -2,8 +2,13 @@
 
 ## **Description**
 For this collaborative Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
-Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle VirtualBox using CS 140's prebuilt Ubuntu appliance.
+Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle VirtualBox using CS 140's prebuilt Ubuntu appliance. Modifications were
+done primarily to these root files (ordered by significance):
+1. `proc.c`
+2. `trap.c`
+3. `sysproc.c`
 
+### **RSDL Scheduler**
 The RSDL scheduler uses an Active set and an Expired set alongside the process table as scheduling heuristics
 to help decide which process to run next in a more fair and heuristic manner.
 
