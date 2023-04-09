@@ -4,17 +4,18 @@
 For this Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
 Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler.
 
-The RSDL uses an Active set and an Expired set,
-structures separate from the process table, to help decide which process to run next in a more heuristic manner.
+The RSDL uses an Active set and an Expired set alongside the process table as scheduling heuristics
+to help decide which process to run next in a more fair and heuristic manner.
 The Active set is given a limited quantum (runtime in ticks), and upon consuming its entire quantum,
-is swapped for the Expired set which is then made the new Active set. One can imagine this swap as a **rotation**.
+is swapped for the Expired set which is then made the new Active set (think **rotation**).
 
-The Active and Expired sets both have `N` levels in them (think of a **staircase**).
-Moreover, each process is also given a limited quanta. Upon
+The Active and Expired sets both have `N` FIFO levels (or queues) in them (think **staircase**).
+Moreover, each process is given a limited quanta. Upon consuming all of its quantum, the process (running in the Active set) moves
+down a level (to level `N-1`) where it gets enqueued and its quantum is replenished. A process that is selected to run in a set's particular
+level is then said to be dequeued from that level. Note that a process begins its life in a predefined level (see `rsdl.h`).
 consuming all of its quantum, the process is moved to the Expired set where it will wait for its next turn.
-There are multiple *caveats* here, such as on what happens when a process consumes its entire quantum as it exits. 
+There are multiple *caveats* here, such as on what happens when a process consumes its entire quantum as it exits (zombie!). 
 Please read the Project Specs for thorough awareness of these caveats. A high-level view of RSDL is shown below:
-
 
 Is defined in `rsdl.h`.
 A final view of the active and expired sets is
