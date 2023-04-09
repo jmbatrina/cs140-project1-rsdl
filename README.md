@@ -110,7 +110,7 @@ Yenzy Urson S. Hebron
 
 University of the Philippines Diliman
 
-2nd Semester A.Y. 2021-2022
+1st Semester A.Y. 2022-2023
 
 © Course Materials by Sir Wilson Tan and Sir Ivan Carlo Balingit
 

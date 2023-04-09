@@ -17,4 +17,4 @@ mkfs
 .gdbinit
 *.bkp
 *.dtmp
-*.pdf
+extras\CS140_Project1_Specs.pdf
