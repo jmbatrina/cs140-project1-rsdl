@@ -10,7 +10,10 @@ done primarily to these root files (ordered by significance):
 
 ### **RSDL Scheduler**
 The RSDL scheduler uses an Active set and an Expired set alongside the process table as scheduling heuristics
-to help decide which process to run next in a more fair and heuristic manner.
+to help decide which process to run next in a fairer and more heuristic manner.
+
+term
+: ds
 
 The Active and Expired sets both have `N` FIFO levels (or queues) in them (think **staircase**).
 Each level is given a limited level-local quantum (runtime in ticks) that is decremented as a process in that level runs.
@@ -82,10 +85,11 @@ To make use of the provided test programs:
 4. Run any of the following test programs (see files named `test_*`). For example, to run `test_priofork.c`, enter `test_priofork`. To stop the test program, press `CTRL+A` then press `x`. This exits xv6.
 5. Verify the results by checking the output in the terminal. As Jan Paul also taught me, it is useful to do `make qemu nox | tee test.out` to dump `stdout` to a log file, `test.out` in this case, which one can verify later on.  
 
-Note on `priofork(k)`: this is a system call that is very similar to `fork()` but ignores the `RSDL_STARTING_LEVEL` parameter, replacing it with `k` instead. That is, a process created using `priofork(k)` will be enqueued in level `k` of the Active set. 
+> Note on `priofork(k)`: this is a system call that is very similar to `fork()` but ignores the `RSDL_STARTING_LEVEL` parameter, replacing it with `k` instead. That is, a process created using `priofork(k)` will be enqueued in level `k` of the Active set. 
 
 ---
-Yenzy Urson S. Hebron
+Yenzy Urson S. Hebron \
+yshebron@up.edu.ph
 
 University of the Philippines Diliman
 
