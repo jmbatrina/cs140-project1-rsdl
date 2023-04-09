@@ -2,7 +2,7 @@
 
 ## **Description**
 For this collaborative Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
-Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used are C and x86 assembly. 
+Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler. Main languages used were C and x86 assembly. Compilation and testing were done through Oracle Virtual Box using CS 140's prebuilt Ubuntu distro.
 
 The RSDL uses an Active set and an Expired set alongside the process table as scheduling heuristics
 to help decide which process to run next in a more fair and heuristic manner.
@@ -48,12 +48,8 @@ works in both its original and modified forms.
 It is suggested for you to only watch the video documentation or skim through the written documentation. 
 
 However, if you really wish to verify the results on your end, the following would be needed.
-- Windows 10 or higher
-- For high-performance systems, one may use Xilinx Vivado 2021.2 Suite: Download through https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2021-2.html (will require account registration).
-- For low-performance systems, one may use EDA Playground. Web app through https://edaplayground.com/ (will require account registration). Please see Project 2 Specs page 25 for full guide. 
-- Minimal space and at least 4 GB memory for EDA playground. At least 70 GB of space and 8 GB of memory for Xilinx Vivado.
-
-**Remark:** Please note that this project was accomplished through Vivado.
+- Windows 7 or higher
+- Latest version of WSL. Note that this project was done 
 
 ## **Running Simulations**
 This guide will only focus on the Vivado platform. Analogous steps can be expected in EDA Playground.
