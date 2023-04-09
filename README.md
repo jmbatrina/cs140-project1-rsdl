@@ -48,7 +48,7 @@ works in both its original and modified forms.
 It is suggested for you to only watch the video documentation or skim through the written documentation.
 
 However, if you really wish to verify the results on your end, the following would be needed.
-- Windows 7 or higher. (Skip the next bullet if you already have a Linux env.)
+- Windows 7 or higher. Otherwise, skip the next bullet if you already have a Linux environment.
 - Latest version of [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (Recommended). Alternative would be to set up a Linux environment in a Virtual Machine, but lightweight testing can be accomplished through WSL.
 - Upon setting-up WSL, launch WSL entering `wsl` in a terminal, then install prerequisites by running the following:
 ```shell
