@@ -25,7 +25,7 @@ There are *multiple caveats* here, such as on:
 - What happens when the Active set runs out of processes to run but still has nonzero level-local quanta?
 - What happens when a process expires but all the levels below it has no more level-local quanta?
 
-These are all answered in the Project Specs, so you may want to read it for thorough awareness of these caveats.
+These are all answered in the Project Documentation and Specs, so you may want to read those for thorough awareness of these caveats.
 
 A high-level view of RSDL is shown below:
 ![rsdl.png](extras\rsdl.png)
