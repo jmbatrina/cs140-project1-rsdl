@@ -2,10 +2,15 @@
 
 ## **Description**
 For this Operating Systems project, we had to augment MIT's xv6 round-robin scheduler with
-Con Kolivas' Rotating Staircase Deadline scheduler (RSDL). The RSDL uses an Active set and an Expired set,
-structures separate from the process table, to help decide which process to run next.
+Con Kolivas' Rotating Staircase DeadLine (RSDL) scheduler.
+
+The RSDL uses an Active set and an Expired set,
+structures separate from the process table, to help decide which process to run next in a more heuristic manner.
 The Active set is given a limited quantum (runtime in ticks), and upon consuming its entire quantum,
-is swapped for the Expired set which is then made the new Active set. Each process is also given a limited quanta. Upon
+is swapped for the Expired set which is then made the new Active set. One can imagine this swap as a **rotation**.
+
+The Active and Expired sets both have `N` levels in them (think of a **staircase**).
+Moreover, each process is also given a limited quanta. Upon
 consuming all of its quantum, the process is moved to the Expired set where it will wait for its next turn.
 There are multiple *caveats* here, such as on what happens when a process consumes its entire quantum as it exits. 
 Please read the Project Specs for thorough awareness of these caveats. A high-level view of RSDL is shown below:
