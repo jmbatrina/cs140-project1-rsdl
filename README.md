@@ -71,7 +71,7 @@ To make use of the provided test programs:
 2. `cd` to the root directory of this project.
 3. Enter `make clean`, then `make qemu-nox`. This will launch the RSDL xv6.
 4. Run any of the following test programs (see files named `test_*`). For example, to run `test_priofork.c`, enter `test_priofork`. To stop the test program, press `CTRL+A` then press `x`. This exits xv6.
-5. Verify the results by checking the output in the terminal. As Jan Paul also taught me, it is useful to do `make qemu nox | tee test.out` to get all  
+5. Verify the results by checking the output in the terminal. As Jan Paul also taught me, it is useful to do `make qemu nox | tee test.out` to dump `stdout` to a log file, `test.out` in this case, which one can verify later on.  
 
 Note on `priofork(k)`: this is a system call that is very similar to `fork()` but ignores the `RSDL_STARTING_LEVEL` parameter, replacing it with `k` instead. That is, a process created using `priofork(k)` will be enqueued in level `k` of the Active set. 
 
