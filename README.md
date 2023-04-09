@@ -28,7 +28,7 @@ There are *multiple caveats* here, such as on:
 These are all answered in the Project Documentation and Specs, so you may want to read those for thorough awareness of these caveats.
 
 A high-level view of RSDL is shown below:
-![rsdl.png](extras\rsdl.png)
+![rsdl.png](extras/rsdl.png)
 
 ### **Quick Links**
 - Full project specifications are in `extras\CS140_Project1_Specs.pdf`. Please email me for access.
