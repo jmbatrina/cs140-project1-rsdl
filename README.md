@@ -85,8 +85,7 @@ To make use of the provided test programs:
 > Note on `priofork(k)`: this is a system call that is very similar to `fork()` but ignores the `RSDL_STARTING_LEVEL` parameter, replacing it with `k` instead. That is, a process created using `priofork(k)` will be enqueued in level `k` of the Active set. 
 
 ---
-Yenzy Urson S. Hebron \
-yshebron@up.edu.ph
+Yenzy Urson S. Hebron \<yshebron@up.edu.ph\>
 
 University of the Philippines Diliman
 
