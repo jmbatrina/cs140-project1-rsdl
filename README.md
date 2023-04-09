@@ -73,7 +73,7 @@ echo "set auto-load safe-path /" >> ~/.gdbinit
 For running tests, please proceed directly to the next section.
 
 ## **Running Tests**
-Test programs are already provided for your convenience. These test programs utilize the system call `schedlog(n)` that causes all processes in each level of the sets to be printed out during program execution. But if you wish, you may write your own test programs that verifies if the RSDL scheduler behaves as expected. You may also edit the scheduler's **parameters** in `rsdl.h`.
+Test programs are already provided for your convenience. These test programs utilize the system call `schedlog(n)` that causes all processes in each level of the sets to be printed out every context switch for `n` ticks. But if you wish, analogous test programs may be written that verifies if the RSDL scheduler behaves as expected. You may also edit the scheduler's **parameters** in `rsdl.h`.
 
 To make use of the provided test programs:
 1. Launch `wsl` on a terminal.
