@@ -75,24 +75,6 @@ To make use of the provided test programs:
 
 Note on `priofork(k)`: this is a system call that is very similar to `fork()` but ignores the `RSDL_STARTING_LEVEL` parameter, replacing it with `k` instead. That is, a process created using `priofork(k)` will be enqueued in level `k` of the Active set. 
 
-## **Sample I/O**
-For testing, say, the sll instruction, you will open `Instruction Tests\sll memfile.txt` and copy its machine code contents to your `memfile.mem` (also shown below).
-```
-2010000c
-00108200
-00108200
-00108200
-2210000c
-ac100054
-```
-An assembly translation of that machine code can be found in  `Instruction Tests\sll tester.asm`. Simulating the workbench with the appropriate testbench on top (`sll_testbench.sv`) will then produce the following waveform diagram (truncated to only show the last few cycles):
-![sll_waveform.png](sll_waveform.png)
-
-As expected, the diagram is clean and error-free. The TLC Console panel would also accompany this with a "Success" message. Video documentation includes a full discussion of the entire waveforms.
-
-### **Reference**
-Harris, D. M., & Harris, S. (2013). *Digital Design and Computer Architecture (2nd ed.).* Elsevier Inc. https://doi.org/10.1016/C2011-0-04377-6
-
 ---
 Yenzy Urson S. Hebron
 
@@ -100,7 +82,7 @@ University of the Philippines Diliman
 
 1st Semester A.Y. 2022-2023
 
-© Course Materials by Sir Wilson Tan and Sir Ivan Carlo Balingit
+© Course Materials by Sir Wilson Tan, Sir Juan Felipe Coronel, and Ma'am Angela Zabala
 
 ---
 ## **xv6 Credits**
