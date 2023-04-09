@@ -40,15 +40,6 @@ in communication with my teammates from suggestions to documentation.
 Of course, to proceed with this, I had to have an in-depth understanding of how the xv6 kernel
 works in both its original and modified forms.
 
-A nuanced understanding of **Hardware Definition Language** (HDL) (specifically **SystemVerilog**) and digital circuits (especially the **datapath** and **control path**) is key to succeeding on this project. We modified the processor to accomodate 5 new instructions:
-1. Shift left logical (sll)
-2. Store byte (sb)
-3. Branch on less than or equal (ble)
-4. Load immediate (li)
-5. Zero-from-right (zfr)
-
-Please see my **Documentation** intro (`For Submission\Documentation.pdf`) or the MIPS Green Sheet (`MIPS Green Sheet (Berkeley).pdf`) for the MIPS32 instruction formats. You may also consult Appendix B of Harris & Harris (2013) or the Project 2 Specs (email me for access) for the complete instruction set and their expected effect.
-
 Our technical documentation skills were also sharpened by this project, one that required *line-by-line* explanation of code. Discussed in the documentation *per added instruction* are:
 * HDL edits
 * Testbench for simulations. 
