@@ -27,7 +27,10 @@ There are *multiple caveats* here, such as on:
 
 These are all answered in the Project Documentation and Specs, so you may want to read those for thorough awareness of these caveats.
 
-A high-level view of RSDL is shown below:
+A high-level view of RSDL is shown below. Process Control Blocks (PCBs or processes in short) are still stored in ptable.proc .
+The “process” entries stored in the level queues in the `ptable.active` and the `ptable.expired` sets are
+essentially just pointers to their corresponding PCBs in `ptable.proc`, and it is on these sets that RSDL
+selects for processes to schedule.
 ![rsdl.png](extras/rsdl.png)
 
 ### **Quick Links**
