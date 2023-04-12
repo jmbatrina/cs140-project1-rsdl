@@ -37,7 +37,7 @@ The “process” entries stored in the level queues in the `ptable.active` and 
 essentially just pointers to their corresponding PCBs in `ptable.proc`, and it is on these sets that RSDL
 selects for processes to schedule.
 
-![rsdl.png](extras/rsdl_2.png)
+![rsdl.png](extras/rsdl_3.png)
 
 ### **Quick Links**
 - Full project specifications are in `extras\CS140_Project1_Specs.pdf`. Please [email](yshebron@up.edu.ph) me for access. Promising quick response.
