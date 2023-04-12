@@ -41,7 +41,7 @@ selects for processes to schedule.
 
 ### **Quick Links**
 - Full project specifications are in `extras\CS140_Project1_Specs.pdf`. Please [email](yshebron@up.edu.ph) me for access. Promising quick response.
-- Project Documentation can be found in `extras\cs140project1.pdf`.
+- Project Documentation can be found in `Documentation.pdf`.
 - Video Documentation can be found [here](https://drive.google.com/file/d/1tz89OH9HZINDWIyBGx8JMmch4MLltlsT/view?usp=share_link).
 
 ## **Collaboration**
